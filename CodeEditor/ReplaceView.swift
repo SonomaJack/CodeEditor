@@ -31,6 +31,7 @@ struct ReplaceView: View {
         }
     }
     @State private var showingResults = false
+    @State private var showColumnOptions = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -62,7 +63,14 @@ struct ReplaceView: View {
                     TextField("Find", text: $searchText)
                         .textFieldStyle(.plain)
                         .onSubmit {
-                            findAll()
+                            findNext()
+                        }
+                        .onChange(of: searchText) { _, _ in
+                            // Incremental search - search as you type
+                            performQuietSearch()
+                            if !searchResults.isEmpty {
+                                currentResultIndex = 0
+                            }
                         }
                     
                     if !searchText.isEmpty {
@@ -101,8 +109,32 @@ struct ReplaceView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 16) {
                         Toggle("Case Sensitive", isOn: $caseSensitive)
+                            .onChange(of: caseSensitive) { _, _ in
+                                if !searchText.isEmpty {
+                                    performQuietSearch()
+                                    if !searchResults.isEmpty && currentResultIndex == nil {
+                                        currentResultIndex = 0
+                                    }
+                                }
+                            }
                         Toggle("Regex", isOn: $useRegex)
+                            .onChange(of: useRegex) { _, _ in
+                                if !searchText.isEmpty {
+                                    performQuietSearch()
+                                    if !searchResults.isEmpty && currentResultIndex == nil {
+                                        currentResultIndex = 0
+                                    }
+                                }
+                            }
                         Toggle("Whole Word", isOn: $wholeWord)
+                            .onChange(of: wholeWord) { _, _ in
+                                if !searchText.isEmpty {
+                                    performQuietSearch()
+                                    if !searchResults.isEmpty && currentResultIndex == nil {
+                                        currentResultIndex = 0
+                                    }
+                                }
+                            }
                     }
                     .toggleStyle(.checkbox)
                     .font(.system(size: 11))
@@ -110,6 +142,14 @@ struct ReplaceView: View {
                     Toggle("Search in Specific Columns", isOn: $useColumnSearch)
                         .toggleStyle(.checkbox)
                         .font(.system(size: 11))
+                        .onChange(of: useColumnSearch) { _, _ in
+                            if !searchText.isEmpty {
+                                performQuietSearch()
+                                if !searchResults.isEmpty && currentResultIndex == nil {
+                                    currentResultIndex = 0
+                                }
+                            }
+                        }
                     
                     if useColumnSearch {
                         HStack {
@@ -123,6 +163,11 @@ struct ReplaceView: View {
                                 .padding(4)
                                 .background(Color(nsColor: .textBackgroundColor))
                                 .cornerRadius(4)
+                                .onChange(of: startColumn) { _, _ in
+                                    if !searchText.isEmpty && useColumnSearch {
+                                        performQuietSearch()
+                                    }
+                                }
                             
                             Text("to")
                                 .font(.system(size: 11))
@@ -133,6 +178,12 @@ struct ReplaceView: View {
                                 .frame(width: 50)
                                 .padding(4)
                                 .background(Color(nsColor: .textBackgroundColor))
+                                .cornerRadius(4)
+                                .onChange(of: endColumn) { _, _ in
+                                    if !searchText.isEmpty && useColumnSearch {
+                                        performQuietSearch()
+                                    }
+                                }
                                 .cornerRadius(4)
                             
                             Text("(leave end empty for rest of line)")

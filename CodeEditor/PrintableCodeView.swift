@@ -8,55 +8,49 @@
 import AppKit
 import SwiftUI
 
-class PrintableCodeView: NSView {
-    private let attributedString: NSAttributedString
-    
-    init(attributedString: NSAttributedString, frame: NSRect) {
-        self.attributedString = attributedString
-        super.init(frame: frame)
-    }
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-    
-    override func draw(_ dirtyRect: NSRect) {
-        // Draw white background
-        NSColor.white.setFill()
-        dirtyRect.fill()
-        
-        // Draw the attributed string
-        attributedString.draw(in: bounds.insetBy(dx: 0, dy: 0))
-    }
+class PrintableTextView: NSTextView {
     
     override var isFlipped: Bool {
         return true
     }
     
-    // Required for pagination
+    // Override to ensure proper pagination
     override func knowsPageRange(_ range: NSRangePointer) -> Bool {
+        guard let layoutManager = layoutManager,
+              let textContainer = textContainer,
+              let printInfo = NSPrintOperation.current?.printInfo else {
+            return false
+        }
+        
+        // Force complete layout
+        layoutManager.ensureLayout(for: textContainer)
+        
+        // Calculate the number of pages
+        let paperHeight = printInfo.paperSize.height
+        let printableHeight = paperHeight - printInfo.topMargin - printInfo.bottomMargin
+        let usedRect = layoutManager.usedRect(for: textContainer)
+        
+        let pageCount = Int(ceil(usedRect.height / printableHeight))
+        range.pointee = NSRange(location: 1, length: max(1, pageCount))
+        
         return true
     }
     
     override func rectForPage(_ page: Int) -> NSRect {
-        // Get print info
         guard let printInfo = NSPrintOperation.current?.printInfo else {
             return bounds
         }
         
-        let paperSize = printInfo.paperSize
-        let leftMargin = printInfo.leftMargin
-        let rightMargin = printInfo.rightMargin
-        let topMargin = printInfo.topMargin
-        let bottomMargin = printInfo.bottomMargin
+        let paperHeight = printInfo.paperSize.height
+        let printableHeight = paperHeight - printInfo.topMargin - printInfo.bottomMargin
         
-        let printableWidth = paperSize.width - leftMargin - rightMargin
-        let printableHeight = paperSize.height - topMargin - bottomMargin
+        // Calculate the rect for this page
+        let yOffset = CGFloat(page - 1) * printableHeight
         
         return NSRect(
-            x: leftMargin,
-            y: topMargin + (CGFloat(page - 1) * printableHeight),
-            width: printableWidth,
+            x: bounds.minX,
+            y: yOffset,
+            width: bounds.width,
             height: printableHeight
         )
     }

@@ -72,12 +72,15 @@ class CodeDocument: Identifiable, Hashable {
     var language: CodeLanguage
     var isModified: Bool = false
     var fileURL: URL?
+    var lastSaveDate: Date?
+    var showLineNumbers: Bool = true
     
     init(filename: String, content: String = "", language: CodeLanguage? = nil, fileURL: URL? = nil) {
         self.filename = filename
         self.content = content
         self.language = language ?? CodeLanguage.detectLanguage(from: filename)
         self.fileURL = fileURL
+        self.lastSaveDate = nil
     }
     
     // Load document from file URL
@@ -86,12 +89,19 @@ class CodeDocument: Identifiable, Hashable {
         let filename = url.lastPathComponent
         let language = CodeLanguage.detectLanguage(from: filename)
         
-        return CodeDocument(
+        // Get file modification date
+        let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
+        let modificationDate = attributes[.modificationDate] as? Date
+        
+        let document = CodeDocument(
             filename: filename,
             content: content,
             language: language,
             fileURL: url
         )
+        document.lastSaveDate = modificationDate
+        
+        return document
     }
     
     // Save document to file
@@ -102,6 +112,7 @@ class CodeDocument: Identifiable, Hashable {
         
         try content.write(to: url, atomically: true, encoding: .utf8)
         isModified = false
+        lastSaveDate = Date()
     }
     
     // MARK: - Hashable Conformance

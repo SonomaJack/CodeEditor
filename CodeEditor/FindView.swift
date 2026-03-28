@@ -29,157 +29,218 @@ struct FindView: View {
         }
     }
     @State private var showingResults = false
+    @State private var showColumnOptions = false
     
     var body: some View {
         VStack(spacing: 0) {
-            // Header
-            HStack {
-                Text("Find")
-                    .font(.headline)
+            // Compact single-line search bar
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                    .frame(width: 16)
+                
+                TextField("Find", text: $searchText)
+                    .textFieldStyle(.plain)
+                    .onSubmit { findNext() }
+                    .onChange(of: searchText) { _, _ in
+                        // Incremental search - search as you type
+                        performQuietSearch()
+                        if !searchResults.isEmpty {
+                            currentResultIndex = 0
+                        }
+                    }
+                
+                if !searchText.isEmpty {
+                    Button(action: { searchText = "" }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 12))
+                    }
+                    .buttonStyle(.plain)
+                }
+                
+                Divider().frame(height: 16)
+                
+                // Navigation
+                Button(action: findPrevious) {
+                    Image(systemName: "chevron.up")
+                }
+                .disabled(searchText.isEmpty)
+                .buttonStyle(.borderless)
+                .help("Previous (⇧⌘G)")
+                .keyboardShortcut("g", modifiers: [.command, .shift])
+                
+                Button(action: findNext) {
+                    Image(systemName: "chevron.down")
+                }
+                .disabled(searchText.isEmpty)
+                .buttonStyle(.borderless)
+                .help("Next (⌘G)")
+                .keyboardShortcut("g", modifiers: .command)
+                
+                Button("All") { findAll() }
+                    .disabled(searchText.isEmpty)
+                    .buttonStyle(.borderless)
+                
+                Divider().frame(height: 16)
+                
+                // Options
+                Toggle(isOn: $caseSensitive) {
+                    Text("Aa")
+                }
+                .toggleStyle(.button)
+                .buttonStyle(.borderless)
+                .help("Match Case")
+                .controlSize(.small)
+                .onChange(of: caseSensitive) { _, _ in
+                    if !searchText.isEmpty {
+                        performQuietSearch()
+                        if !searchResults.isEmpty && currentResultIndex == nil {
+                            currentResultIndex = 0
+                        }
+                    }
+                }
+                
+                Toggle(isOn: $useRegex) {
+                    Text(".*")
+                        .font(.system(size: 11, design: .monospaced))
+                }
+                .toggleStyle(.button)
+                .buttonStyle(.borderless)
+                .help("Regex")
+                .controlSize(.small)
+                .onChange(of: useRegex) { _, _ in
+                    if !searchText.isEmpty {
+                        performQuietSearch()
+                        if !searchResults.isEmpty && currentResultIndex == nil {
+                            currentResultIndex = 0
+                        }
+                    }
+                }
+                
+                Toggle(isOn: $wholeWord) {
+                    Image(systemName: "w.square")
+                        .font(.system(size: 11))
+                }
+                .toggleStyle(.button)
+                .buttonStyle(.borderless)
+                .help("Whole Word")
+                .controlSize(.small)
+                .onChange(of: wholeWord) { _, _ in
+                    if !searchText.isEmpty {
+                        performQuietSearch()
+                        if !searchResults.isEmpty && currentResultIndex == nil {
+                            currentResultIndex = 0
+                        }
+                    }
+                }
+                
+                // Column search toggle
+                Button(action: { showColumnOptions.toggle() }) {
+                    Image(systemName: "tablecells")
+                        .font(.system(size: 11))
+                }
+                .buttonStyle(.borderless)
+                .help("Column Search")
+                .background(useColumnSearch ? Color.accentColor.opacity(0.2) : Color.clear)
+                .cornerRadius(4)
+                
+                if showingResults, let index = currentResultIndex {
+                    Divider().frame(height: 16)
+                    Text("\(index + 1) of \(searchResults.count)")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
                 
                 Spacer()
                 
                 Button(action: { isPresented = false }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11))
                 }
                 .buttonStyle(.plain)
             }
-            .padding()
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
             .background(Color(nsColor: .controlBackgroundColor))
             
-            Divider()
-            
-            // Search fields
-            VStack(spacing: 12) {
-                // Find field
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
-                    
-                    TextField("Find", text: $searchText)
-                        .textFieldStyle(.plain)
-                        .onSubmit {
-                            findAll()
-                        }
-                    
-                    if !searchText.isEmpty {
-                        Button(action: { searchText = "" }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(8)
-                .background(Color(nsColor: .textBackgroundColor))
-                .cornerRadius(6)
-                
-                // Search options
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 16) {
-                        Toggle("Case Sensitive", isOn: $caseSensitive)
-                        Toggle("Regex", isOn: $useRegex)
-                        Toggle("Whole Word", isOn: $wholeWord)
-                    }
-                    .toggleStyle(.checkbox)
-                    .font(.system(size: 11))
-                    
-                    Toggle("Search in Specific Columns", isOn: $useColumnSearch)
+            // Column search options
+            if showColumnOptions {
+                HStack(spacing: 8) {
+                    Toggle("Column Search:", isOn: $useColumnSearch)
                         .toggleStyle(.checkbox)
                         .font(.system(size: 11))
-                    
-                    if useColumnSearch {
-                        HStack {
-                            Text("Columns:")
-                                .font(.system(size: 11))
-                                .foregroundStyle(.secondary)
-                            
-                            TextField("Start", text: $startColumn)
-                                .textFieldStyle(.plain)
-                                .frame(width: 50)
-                                .padding(4)
-                                .background(Color(nsColor: .textBackgroundColor))
-                                .cornerRadius(4)
-                            
-                            Text("to")
-                                .font(.system(size: 11))
-                                .foregroundStyle(.secondary)
-                            
-                            TextField("End", text: $endColumn)
-                                .textFieldStyle(.plain)
-                                .frame(width: 50)
-                                .padding(4)
-                                .background(Color(nsColor: .textBackgroundColor))
-                                .cornerRadius(4)
-                            
-                            Text("(leave end empty for rest of line)")
-                                .font(.system(size: 10))
-                                .foregroundStyle(.tertiary)
-                            
-                            Spacer()
+                        .onChange(of: useColumnSearch) { _, _ in
+                            if !searchText.isEmpty {
+                                performQuietSearch()
+                                if !searchResults.isEmpty && currentResultIndex == nil {
+                                    currentResultIndex = 0
+                                }
+                            }
                         }
-                        .padding(.leading, 20)
-                    }
-                }
-                
-                // Action buttons
-                HStack(spacing: 8) {
-                    Button("Find All") {
-                        findAll()
-                    }
-                    .disabled(searchText.isEmpty)
                     
-                    Button("Find Next") {
-                        findNext()
-                    }
-                    .disabled(searchText.isEmpty)
-                    .keyboardShortcut("g", modifiers: .command)
+                    Text("Start:")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
                     
-                    Button("Find Previous") {
-                        findPrevious()
-                    }
-                    .disabled(searchText.isEmpty)
-                    .keyboardShortcut("g", modifiers: [.command, .shift])
+                    TextField("", text: $startColumn)
+                        .textFieldStyle(.plain)
+                        .frame(width: 40)
+                        .padding(2)
+                        .background(Color(nsColor: .textBackgroundColor))
+                        .cornerRadius(3)
+                        .font(.system(size: 11, design: .monospaced))
+                        .disabled(!useColumnSearch)
+                        .onChange(of: startColumn) { _, _ in
+                            if !searchText.isEmpty && useColumnSearch {
+                                performQuietSearch()
+                            }
+                        }
+                    
+                    Text("End:")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                    
+                    TextField("", text: $endColumn)
+                        .textFieldStyle(.plain)
+                        .frame(width: 40)
+                        .padding(2)
+                        .background(Color(nsColor: .textBackgroundColor))
+                        .cornerRadius(3)
+                        .font(.system(size: 11, design: .monospaced))
+                        .disabled(!useColumnSearch)
+                        .onChange(of: endColumn) { _, _ in
+                            if !searchText.isEmpty && useColumnSearch {
+                                performQuietSearch()
+                            }
+                        }
+                    
+                    Text("(empty = end of line)")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
                     
                     Spacer()
-                    
-                    if showingResults {
-                        Text("\(searchResults.count) result\(searchResults.count == 1 ? "" : "s")")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                        
-                        if let index = currentResultIndex {
-                            Text("[\(index + 1) of \(searchResults.count)]")
-                                .font(.system(size: 11))
-                                .foregroundStyle(.blue)
-                        }
-                    }
                 }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 4)
+                .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
             }
-            .padding()
             
-            // Results list
+            // Compact results
             if showingResults && !searchResults.isEmpty {
                 Divider()
-                
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 0) {
+                    LazyVStack(spacing: 0) {
                         ForEach(Array(searchResults.enumerated()), id: \.offset) { index, result in
-                            SearchResultRow(
-                                result: result,
-                                isSelected: currentResultIndex == index
-                            ) {
+                            SearchResultRow(result: result, isSelected: currentResultIndex == index) {
                                 currentResultIndex = index
                             }
                         }
                     }
                 }
-                .frame(maxHeight: 200)
+                .frame(maxHeight: 120)
             }
         }
-        .frame(minWidth: 600)
-        .background(Color(nsColor: .windowBackgroundColor))
     }
     
     // MARK: - Find Operations
@@ -200,7 +261,7 @@ struct FindView: View {
             let columnOffset = useColumnSearch ? ((Int(startColumn) ?? 1) - 1) : 0
             let searchRange = getSearchRange(for: lineString)
             
-            let matches = findMatches(in: searchRange, fullLine: lineString)
+            let matches = findMatches(in: searchRange)
             
             for match in matches {
                 let actualColumnStart = match.location + columnOffset + 1
@@ -268,7 +329,7 @@ struct FindView: View {
             let columnOffset = useColumnSearch ? ((Int(startColumn) ?? 1) - 1) : 0
             let searchRange = getSearchRange(for: lineString)
             
-            let matches = findMatches(in: searchRange, fullLine: lineString)
+            let matches = findMatches(in: searchRange)
             
             for match in matches {
                 let actualColumnStart = match.location + columnOffset + 1
@@ -290,10 +351,10 @@ struct FindView: View {
     private func getSearchRange(for line: String) -> String {
         guard useColumnSearch else { return line }
         
-        let start = (Int(startColumn) ?? 1) - 1
+        let start = max(0, (Int(startColumn) ?? 1) - 1)
         let end = endColumn.isEmpty ? line.count : (Int(endColumn) ?? line.count)
         
-        let startIndex = line.index(line.startIndex, offsetBy: max(0, start), limitedBy: line.endIndex) ?? line.endIndex
+        let startIndex = line.index(line.startIndex, offsetBy: start, limitedBy: line.endIndex) ?? line.endIndex
         let endIndex = line.index(line.startIndex, offsetBy: min(line.count, end), limitedBy: line.endIndex) ?? line.endIndex
         
         guard startIndex <= endIndex else { return "" }
@@ -301,21 +362,19 @@ struct FindView: View {
         return String(line[startIndex..<endIndex])
     }
     
-    private func findMatches(in text: String, fullLine: String) -> [NSRange] {
+    private func findMatches(in text: String) -> [NSRange] {
         guard !text.isEmpty else { return [] }
         
         var matches: [NSRange] = []
         
         if useRegex {
             do {
-                let pattern = searchText
                 let regex = try NSRegularExpression(
-                    pattern: pattern,
+                    pattern: searchText,
                     options: caseSensitive ? [] : .caseInsensitive
                 )
                 let nsText = text as NSString
-                let results = regex.matches(in: text, range: NSRange(location: 0, length: nsText.length))
-                matches = results.map { $0.range }
+                matches = regex.matches(in: text, range: NSRange(location: 0, length: nsText.length)).map { $0.range }
             } catch {
                 matches = literalSearch(in: text)
             }

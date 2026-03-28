@@ -14,6 +14,9 @@ struct CodeEditorView: View {
     @State private var showSuggestions = false
     @State private var cursorPosition = 0
     @State private var showPrintPanel = false
+    @State private var showFind = false
+    @State private var showReplace = false
+    @State private var highlightRange: HighlightRange? = nil
     
     var body: some View {
         VStack(spacing: 0) {
@@ -24,6 +27,12 @@ struct CodeEditorView: View {
                 
                 Spacer()
                 
+                // Line numbers toggle
+                Button(action: { document.showLineNumbers.toggle() }) {
+                    Label("Line Numbers", systemImage: document.showLineNumbers ? "list.number" : "list.bullet")
+                }
+                .help(document.showLineNumbers ? "Hide line numbers" : "Show line numbers")
+                
                 Picker("Language", selection: $document.language) {
                     ForEach(CodeLanguage.allCases) { language in
                         Text(language.rawValue).tag(language)
@@ -31,6 +40,28 @@ struct CodeEditorView: View {
                 }
                 .pickerStyle(.menu)
                 .frame(width: 180)
+                
+                Button(action: { 
+                    showFind.toggle()
+                    if showFind {
+                        showReplace = false
+                    }
+                }) {
+                    Label("Find", systemImage: "magnifyingglass")
+                }
+                .help("Find")
+                .keyboardShortcut("f", modifiers: .command)
+                
+                Button(action: { 
+                    showReplace.toggle()
+                    if showReplace {
+                        showFind = false
+                    }
+                }) {
+                    Label("Replace", systemImage: "arrow.triangle.2.circlepath")
+                }
+                .help("Find and replace")
+                .keyboardShortcut("h", modifiers: [.command, .option])
                 
                 Button(action: printDocument) {
                     Label("Print", systemImage: "printer")
@@ -56,13 +87,56 @@ struct CodeEditorView: View {
             
             Divider()
             
-            // Code editor with native scrolling
-            CodeTextView(
-                text: $document.content,
-                isModified: $document.isModified,
-                language: document.language,
-                onTextChange: updateSuggestions
-            )
+            // Find Panel
+            if showFind {
+                FindView(
+                    isPresented: $showFind,
+                    documentContent: $document.content,
+                    onResultSelected: { result in
+                        highlightRange = HighlightRange(
+                            lineNumber: result.lineNumber,
+                            columnStart: result.columnStart,
+                            columnEnd: result.columnEnd
+                        )
+                    }
+                )
+                
+                Divider()
+            }
+            
+            // Replace Panel
+            if showReplace {
+                ReplaceView(
+                    isPresented: $showReplace,
+                    documentContent: $document.content,
+                    isModified: $document.isModified,
+                    onResultSelected: { result in
+                        highlightRange = HighlightRange(
+                            lineNumber: result.lineNumber,
+                            columnStart: result.columnStart,
+                            columnEnd: result.columnEnd
+                        )
+                    }
+                )
+                
+                Divider()
+            }
+            
+            // Code editor with line numbers
+            HStack(spacing: 0) {
+                if document.showLineNumbers {
+                    LineNumberView(text: document.content)
+                        .frame(width: 40)
+                }
+                
+                CodeTextView(
+                    text: $document.content,
+                    isModified: $document.isModified,
+                    language: document.language,
+                    showLineNumbers: document.showLineNumbers,
+                    onTextChange: updateSuggestions
+                )
+            }
             
             // Completion suggestions
             if showSuggestions && !suggestions.isEmpty {
@@ -84,6 +158,17 @@ struct CodeEditorView: View {
         .onChange(of: triggerPrint) { _, _ in
             printDocument()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .showFind)) { _ in
+            showFind = true
+            showReplace = false
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .showReplace)) { _ in
+            showReplace = true
+            showFind = false
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .showHelpWindow)) { _ in
+            showHelp()
+        }
     }
     
     private func saveDocument() {
@@ -95,7 +180,15 @@ struct CodeEditorView: View {
     }
     
     private func printDocument() {
-        PrintCoordinator.printCode(document.content, filename: document.filename, from: NSApp.keyWindow)
+        PrintCoordinator.printDocument(document, from: NSApp.keyWindow)
+    }
+    
+    private func showHelp() {
+        if let url = URL(string: "codeeditor://help") {
+            NSWorkspace.shared.open(url)
+        }
+        // Alternative: Show help window
+        NotificationCenter.default.post(name: .showHelpWindow, object: nil)
     }
     
     private func updateSuggestions() {

@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		AA8CB2752F76AB5A00D7FAC8 /* DocumentPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA8CB2742F76AB5A00D7FAC8 /* DocumentPersistence.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		AABCB7FF2F75BB980060B234 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,6 +28,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AA8CB2742F76AB5A00D7FAC8 /* DocumentPersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentPersistence.swift; sourceTree = "<group>"; };
 		AABCB7F12F75BB970060B234 /* CodeEditor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CodeEditor.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AABCB7FE2F75BB980060B234 /* CodeEditorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CodeEditorTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AABCB8082F75BB980060B234 /* CodeEditorUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CodeEditorUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -79,6 +84,7 @@
 				AABCB8012F75BB980060B234 /* CodeEditorTests */,
 				AABCB80B2F75BB980060B234 /* CodeEditorUITests */,
 				AABCB7F22F75BB970060B234 /* Products */,
+				AA8CB2742F76AB5A00D7FAC8 /* DocumentPersistence.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -236,6 +242,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA8CB2752F76AB5A00D7FAC8 /* DocumentPersistence.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

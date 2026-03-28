@@ -11,6 +11,7 @@ struct FindReplaceView: View {
     @Binding var isPresented: Bool
     @Binding var documentContent: String
     @Binding var isModified: Bool
+    var onResultSelected: ((SearchResult) -> Void)? = nil
     
     @State private var searchText = ""
     @State private var replaceText = ""
@@ -20,16 +21,24 @@ struct FindReplaceView: View {
     @State private var useColumnSearch = false
     @State private var startColumn = "1"
     @State private var endColumn = ""
+    @State private var showReplaceOptions = false
     
     @State private var searchResults: [SearchResult] = []
-    @State private var currentResultIndex: Int? = nil
+    @State private var currentResultIndex: Int? = nil {
+        didSet {
+            // Notify when result selection changes
+            if let index = currentResultIndex, index < searchResults.count {
+                onResultSelected?(searchResults[index])
+            }
+        }
+    }
     @State private var showingResults = false
     
     var body: some View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Text("Find and Replace")
+                Text(showReplaceOptions ? "Find and Replace" : "Find")
                     .font(.headline)
                 
                 Spacer()
@@ -70,25 +79,27 @@ struct FindReplaceView: View {
                 .background(Color(nsColor: .textBackgroundColor))
                 .cornerRadius(6)
                 
-                // Replace field
-                HStack {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .foregroundStyle(.secondary)
-                    
-                    TextField("Replace", text: $replaceText)
-                        .textFieldStyle(.plain)
-                    
-                    if !replaceText.isEmpty {
-                        Button(action: { replaceText = "" }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.secondary)
+                // Replace field - only show when replace mode is active
+                if showReplaceOptions {
+                    HStack {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .foregroundStyle(.secondary)
+                        
+                        TextField("Replace", text: $replaceText)
+                            .textFieldStyle(.plain)
+                        
+                        if !replaceText.isEmpty {
+                            Button(action: { replaceText = "" }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
+                    .padding(8)
+                    .background(Color(nsColor: .textBackgroundColor))
+                    .cornerRadius(6)
                 }
-                .padding(8)
-                .background(Color(nsColor: .textBackgroundColor))
-                .cornerRadius(6)
                 
                 // Search options
                 VStack(alignment: .leading, spacing: 8) {
@@ -140,35 +151,76 @@ struct FindReplaceView: View {
                 
                 // Action buttons
                 HStack(spacing: 8) {
-                    Button("Find All") {
-                        findAll()
+                    if !showReplaceOptions {
+                        // FIND MODE - Only find buttons
+                        Button("Find All") {
+                            findAll()
+                        }
+                        .disabled(searchText.isEmpty)
+                        
+                        Button("Find Next") {
+                            findNext()
+                        }
+                        .disabled(searchText.isEmpty)
+                        .keyboardShortcut("g", modifiers: .command)
+                        
+                        Button("Find Previous") {
+                            findPrevious()
+                        }
+                        .disabled(searchText.isEmpty)
+                        .keyboardShortcut("g", modifiers: [.command, .shift])
+                        
+                        Divider()
+                            .frame(height: 20)
+                        
+                        // Toggle to replace mode
+                        Button("Replace...") {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                showReplaceOptions = true
+                            }
+                        }
+                    } else {
+                        // REPLACE MODE - Replace buttons
+                        Button("Find All") {
+                            findAll()
+                        }
+                        .disabled(searchText.isEmpty)
+                        
+                        Button("Find Next") {
+                            findNext()
+                        }
+                        .disabled(searchText.isEmpty)
+                        .keyboardShortcut("g", modifiers: .command)
+                        
+                        Button("Find Previous") {
+                            findPrevious()
+                        }
+                        .disabled(searchText.isEmpty)
+                        .keyboardShortcut("g", modifiers: [.command, .shift])
+                        
+                        Divider()
+                            .frame(height: 20)
+                        
+                        Button("Replace") {
+                            replaceCurrentMatch()
+                        }
+                        .disabled(currentResultIndex == nil)
+                        
+                        Button("Replace All") {
+                            replaceAll()
+                        }
+                        .disabled(searchText.isEmpty)
+                        
+                        Divider()
+                            .frame(height: 20)
+                        
+                        // Toggle back to find mode
+                        Button("Find Only") {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                showReplaceOptions = false
+                            }
+                        }
                     }
-                    .disabled(searchText.isEmpty)
-                    
-                    Button("Find Next") {
-                        findNext()
-                    }
-                    .disabled(searchText.isEmpty)
-                    .keyboardShortcut("g", modifiers: .command)
-                    
-                    Button("Find Previous") {
-                        findPrevious()
-                    }
-                    .disabled(searchText.isEmpty)
-                    .keyboardShortcut("g", modifiers: [.command, .shift])
-                    
-                    Divider()
-                        .frame(height: 20)
-                    
-                    Button("Replace") {
-                        replaceCurrentMatch()
-                    }
-                    .disabled(currentResultIndex == nil)
-                    
-                    Button("Replace All") {
-                        replaceAll()
-                    }
-                    .disabled(searchText.isEmpty)
                     
                     Spacer()
                     
@@ -225,15 +277,19 @@ struct FindReplaceView: View {
         
         for (lineIndex, line) in lines.enumerated() {
             let lineString = String(line)
+            let columnOffset = useColumnSearch ? ((Int(startColumn) ?? 1) - 1) : 0
             let searchRange = getSearchRange(for: lineString)
             
             let matches = findMatches(in: searchRange, fullLine: lineString)
             
             for match in matches {
+                let actualColumnStart = match.location + columnOffset + 1
+                let actualColumnEnd = match.location + match.length + columnOffset + 1
+                
                 searchResults.append(SearchResult(
                     lineNumber: lineIndex + 1,
-                    columnStart: match.location + 1,
-                    columnEnd: match.location + match.length + 1,
+                    columnStart: actualColumnStart,
+                    columnEnd: actualColumnEnd,
                     lineContent: lineString,
                     matchedText: String(searchRange[searchRange.index(searchRange.startIndex, offsetBy: match.location)..<searchRange.index(searchRange.startIndex, offsetBy: match.location + match.length)])
                 ))
@@ -247,21 +303,35 @@ struct FindReplaceView: View {
     }
     
     private func findNext() {
+        // Build search results quietly if not already done
         if searchResults.isEmpty {
-            findAll()
+            performQuietSearch()
+        }
+        
+        if searchResults.isEmpty {
+            // No matches found
             return
         }
         
         if let currentIndex = currentResultIndex {
-            currentResultIndex = (currentIndex + 1) % searchResults.count
+            let nextIndex = (currentIndex + 1) % searchResults.count
+            currentResultIndex = nextIndex
         } else {
             currentResultIndex = 0
         }
+        
+        // Don't show results panel for Find Next
+        // Results are highlighted in the editor
     }
     
     private func findPrevious() {
+        // Build search results quietly if not already done
         if searchResults.isEmpty {
-            findAll()
+            performQuietSearch()
+        }
+        
+        if searchResults.isEmpty {
+            // No matches found
             return
         }
         
@@ -269,6 +339,40 @@ struct FindReplaceView: View {
             currentResultIndex = currentIndex > 0 ? currentIndex - 1 : searchResults.count - 1
         } else {
             currentResultIndex = searchResults.count - 1
+        }
+        
+        // Don't show results panel for Find Previous
+        // Results are highlighted in the editor
+    }
+    
+    private func performQuietSearch() {
+        // Same as findAll but without showing the results panel
+        searchResults = []
+        currentResultIndex = nil
+        
+        guard !searchText.isEmpty else { return }
+        
+        let lines = documentContent.split(separator: "\n", omittingEmptySubsequences: false)
+        
+        for (lineIndex, line) in lines.enumerated() {
+            let lineString = String(line)
+            let columnOffset = useColumnSearch ? ((Int(startColumn) ?? 1) - 1) : 0
+            let searchRange = getSearchRange(for: lineString)
+            
+            let matches = findMatches(in: searchRange, fullLine: lineString)
+            
+            for match in matches {
+                let actualColumnStart = match.location + columnOffset + 1
+                let actualColumnEnd = match.location + match.length + columnOffset + 1
+                
+                searchResults.append(SearchResult(
+                    lineNumber: lineIndex + 1,
+                    columnStart: actualColumnStart,
+                    columnEnd: actualColumnEnd,
+                    lineContent: lineString,
+                    matchedText: String(searchRange[searchRange.index(searchRange.startIndex, offsetBy: match.location)..<searchRange.index(searchRange.startIndex, offsetBy: match.location + match.length)])
+                ))
+            }
         }
     }
     
@@ -420,28 +524,16 @@ struct SearchResultRow: View {
     var body: some View {
         Button(action: onSelect) {
             HStack(alignment: .top, spacing: 8) {
-                // Line number
-                Text("\(result.lineNumber)")
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 40, alignment: .trailing)
-                
-                // Column range
-                Text("[\(result.columnStart)-\(result.columnEnd)]")
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(.tertiary)
-                    .frame(width: 70, alignment: .leading)
-                
-                // Line content with highlight
+                // Line content only - no line/column numbers
                 Text(result.lineContent)
-                    .font(.system(size: 11, design: .monospaced))
+                    .font(.system(size: 12, design: .monospaced))
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 6)
+            .padding(.vertical, 8)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -472,6 +564,9 @@ struct SearchResultRow: View {
     FindReplaceView(
         isPresented: $isPresented,
         documentContent: $content,
-        isModified: $isModified
+        isModified: $isModified,
+        onResultSelected: { result in
+            print("Selected result at line \(result.lineNumber)")
+        }
     )
 }

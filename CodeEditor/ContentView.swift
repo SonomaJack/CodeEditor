@@ -17,135 +17,14 @@ struct ContentView: View {
     @State private var showErrorAlert = false
     @State private var errorMessage = ""
     @State private var triggerPrint = false
+    @State private var hasLoadedRecentFiles = false
+    @State private var showHelpWindow = false
     
     var body: some View {
         NavigationSplitView {
-            // Sidebar - File list
-            VStack(spacing: 0) {
-                // Header
-                HStack {
-                    Text("Files")
-                        .font(.headline)
-                    Spacer()
-                    
-                    // Open file button
-                    Button(action: openFile) {
-                        Image(systemName: "folder")
-                    }
-                    .buttonStyle(.borderless)
-                    .help("Open File")
-                    
-                    // New file button
-                    Button(action: { showNewFileSheet = true }) {
-                        Image(systemName: "plus")
-                    }
-                    .buttonStyle(.borderless)
-                    .help("New File")
-                }
-                .padding()
-                
-                Divider()
-                
-                // File list
-                if documents.isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: "doc.text")
-                            .font(.system(size: 48))
-                            .foregroundStyle(.secondary)
-                        Text("No files")
-                            .font(.title3)
-                            .foregroundStyle(.secondary)
-                        Text("Click + to create a new file")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    List(selection: $selectedDocument) {
-                        ForEach(documents) { document in
-                            HStack {
-                                Image(systemName: "doc.text")
-                                    .foregroundStyle(.blue)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(document.filename)
-                                        .font(.body)
-                                    Text(document.language.rawValue)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                if document.isModified {
-                                    Circle()
-                                        .fill(.orange)
-                                        .frame(width: 6, height: 6)
-                                }
-                            }
-                            .tag(document)
-                            .contextMenu {
-                                Button("Save") {
-                                    saveDocument(document)
-                                }
-                                .disabled(document.fileURL == nil)
-                                
-                                Button("Delete", role: .destructive) {
-                                    deleteDocument(document)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            .frame(minWidth: 200)
-            .toolbar {
-                ToolbarItem(placement: .navigation) {
-                    Button(action: toggleSidebar) {
-                        Image(systemName: "sidebar.left")
-                    }
-                }
-            }
+            sidebarContent
         } detail: {
-            // Main editor area
-            if let document = selectedDocument {
-                CodeEditorView(document: document, triggerPrint: $triggerPrint)
-            } else {
-                // Welcome screen
-                VStack(spacing: 20) {
-                    Image(systemName: "chevron.left.forwardslash.chevron.right")
-                        .font(.system(size: 72))
-                        .foregroundStyle(.blue)
-                    
-                    Text("Code Editor")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                    
-                    Text("Create or select a file to start editing")
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                    
-                    Button("Create New File") {
-                        showNewFileSheet = true
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Features:")
-                            .font(.headline)
-                        
-                        FeatureRow(icon: "paintbrush", title: "Syntax Highlighting", description: "Support for Swift, Python, JavaScript, Java, Apex, C++, HTML, and CSS")
-                        FeatureRow(icon: "lightbulb", title: "Code Completion", description: "Intelligent suggestions as you type")
-                        FeatureRow(icon: "doc.text", title: "Multiple Files", description: "Work with multiple code files simultaneously")
-                        FeatureRow(icon: "folder", title: "Open Local Files", description: "Open and edit files from your computer")
-                        FeatureRow(icon: "printer", title: "Print Support", description: "Print your code with syntax highlighting")
-                    }
-                    .padding()
-                    .background(Color.blue.opacity(0.1))
-                    .cornerRadius(12)
-                    .frame(maxWidth: 500)
-                }
-                .padding()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
+            detailContent
         }
         .sheet(isPresented: $showNewFileSheet) {
             NewFileSheet(
@@ -154,30 +33,204 @@ struct ContentView: View {
                 onCreate: createNewFile
             )
         }
+        .sheet(isPresented: $showHelpWindow) {
+            // Temporary placeholder - Add HelpView.swift to your Xcode target to enable full help
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    Text("Code Editor Help")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                    
+                    Divider()
+                    
+                    Text("⌘F - Find")
+                    Text("⌥⌘H - Find and Replace")
+                    Text("⌘G - Find Next")
+                    Text("⇧⌘G - Find Previous")
+                    
+                    Divider()
+                    
+                    Text("To enable full help documentation, add HelpView.swift to your Xcode target.")
+                        .foregroundStyle(.secondary)
+                }
+                .padding(24)
+            }
+            .frame(width: 600, height: 400)
+        }
         .alert("Error", isPresented: $showErrorAlert) {
             Button("OK", role: .cancel) { }
         } message: {
             Text(errorMessage)
         }
         .onAppear {
-            // Create a sample file if no files exist
-            if documents.isEmpty {
-                createSampleFile()
+            loadRecentFiles()
+        }
+        .onChange(of: documents) { _, newDocuments in
+            saveRecentFiles(newDocuments)
+        }
+        .modifier(NotificationHandlers(
+            showNewFileSheet: $showNewFileSheet,
+            selectedDocument: selectedDocument,
+            triggerPrint: $triggerPrint,
+            showHelpWindow: $showHelpWindow,
+            onOpenFile: openFile,
+            onSaveDocument: { if let doc = selectedDocument { saveDocument(doc) } }
+        ))
+    }
+    
+    // MARK: - View Components
+    
+    private var sidebarContent: some View {
+        // Sidebar - File list
+        VStack(spacing: 0) {
+            sidebarHeader
+            
+            Divider()
+            
+            fileList
+        }
+        .frame(minWidth: 200)
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                Button(action: toggleSidebar) {
+                    Image(systemName: "sidebar.left")
+                }
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .createNewFile)) { _ in
-            showNewFileSheet = true
+    }
+    
+    private var sidebarHeader: some View {
+        HStack {
+            Text("Files")
+                .font(.headline)
+            Spacer()
+            
+            // Open file button
+            Button(action: openFile) {
+                Image(systemName: "folder")
+            }
+            .buttonStyle(.borderless)
+            .help("Open Files")
+            
+            // New file button
+            Button(action: { showNewFileSheet = true }) {
+                Image(systemName: "plus")
+            }
+            .buttonStyle(.borderless)
+            .help("New File")
         }
-        .onReceive(NotificationCenter.default.publisher(for: .openFile)) { _ in
-            openFile()
+        .padding()
+    }
+    
+    private var fileList: some View {
+        Group {
+            if documents.isEmpty {
+                emptyFileListView
+            } else {
+                documentListView
+            }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .saveFile)) { _ in
-            if let document = selectedDocument {
+    }
+    
+    private var emptyFileListView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "doc.text")
+                .font(.system(size: 48))
+                .foregroundStyle(.secondary)
+            Text("No files")
+                .font(.title3)
+                .foregroundStyle(.secondary)
+            Text("Click + to create a new file")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var documentListView: some View {
+        List(selection: $selectedDocument) {
+            ForEach(documents) { document in
+                documentRow(for: document)
+            }
+        }
+    }
+    
+    private func documentRow(for document: CodeDocument) -> some View {
+        HStack {
+            Image(systemName: "doc.text")
+                .foregroundStyle(.blue)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(document.filename)
+                    .font(.body)
+                Text(document.language.rawValue)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            if document.isModified {
+                Circle()
+                    .fill(.orange)
+                    .frame(width: 6, height: 6)
+            }
+        }
+        .tag(document)
+        .contextMenu {
+            Button("Save") {
                 saveDocument(document)
             }
+            .disabled(document.fileURL == nil)
+            
+            Button("Delete", role: .destructive) {
+                deleteDocument(document)
+            }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .printFile)) { _ in
-            triggerPrint.toggle()
+    }
+    
+    private var detailContent: some View {
+        Group {
+            if let document = selectedDocument {
+                CodeEditorView(document: document, triggerPrint: $triggerPrint)
+            } else {
+                welcomeScreen
+            }
+        }
+    }
+    
+    private var welcomeScreen: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "chevron.left.forwardslash.chevron.right")
+                .font(.system(size: 72))
+                .foregroundStyle(.blue)
+            
+            Text("Code Editor")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+            
+            Text(documents.isEmpty ? "Create or open a file to start editing" : "Select a file to start editing")
+                .font(.title3)
+                .foregroundStyle(.secondary)
+            
+            welcomeButtons
+        }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var welcomeButtons: some View {
+        HStack(spacing: 12) {
+            Button("Create New File") {
+                showNewFileSheet = true
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            
+            if documents.isEmpty {
+                Button("Open File") {
+                    openFile()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+            }
         }
     }
     
@@ -185,27 +238,42 @@ struct ContentView: View {
     
     private func openFile() {
         let panel = NSOpenPanel()
-        panel.allowsMultipleSelection = false
+        panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
         panel.allowedContentTypes = UTType.codeFiles
-        panel.message = "Select a code file to open"
+        panel.message = "Select one or more code files to open"
         
         panel.begin { response in
-            if response == .OK, let url = panel.url {
-                do {
-                    let document = try CodeDocument.load(from: url)
-                    
-                    // Check if file is already open
-                    if !documents.contains(where: { $0.fileURL == url }) {
-                        documents.append(document)
-                        selectedDocument = document
-                    } else {
-                        // Select the already open document
-                        selectedDocument = documents.first(where: { $0.fileURL == url })
+            if response == .OK {
+                var lastOpenedDocument: CodeDocument?
+                var errors: [String] = []
+                
+                for url in panel.urls {
+                    do {
+                        let document = try CodeDocument.load(from: url)
+                        
+                        // Check if file is already open
+                        if !documents.contains(where: { $0.fileURL == url }) {
+                            documents.append(document)
+                            lastOpenedDocument = document
+                        } else {
+                            // Select the already open document
+                            lastOpenedDocument = documents.first(where: { $0.fileURL == url })
+                        }
+                    } catch {
+                        errors.append("\(url.lastPathComponent): \(error.localizedDescription)")
                     }
-                } catch {
-                    errorMessage = "Failed to open file: \(error.localizedDescription)"
+                }
+                
+                // Select the last successfully opened document
+                if let lastDocument = lastOpenedDocument {
+                    selectedDocument = lastDocument
+                }
+                
+                // Show errors if any occurred
+                if !errors.isEmpty {
+                    errorMessage = "Failed to open some files:\n" + errors.joined(separator: "\n")
                     showErrorAlert = true
                 }
             }
@@ -243,32 +311,19 @@ struct ContentView: View {
         documents.removeAll { $0.id == document.id }
     }
     
-    private func createSampleFile() {
-        let sampleSwift = CodeDocument(
-            filename: "Example.swift",
-            content: """
-            import SwiftUI
-            
-            struct ContentView: View {
-                @State private var name = "World"
-                
-                var body: some View {
-                    VStack {
-                        Text("Hello, \\(name)!")
-                            .font(.largeTitle)
-                        
-                        TextField("Name", text: $name)
-                            .textFieldStyle(.roundedBorder)
-                            .padding()
-                    }
-                    .padding()
-                }
-            }
-            """,
-            language: .swift
-        )
-        documents.append(sampleSwift)
-        selectedDocument = sampleSwift
+    private func loadRecentFiles() {
+        let recentDocuments = DocumentPersistence.loadRecentFiles()
+        if !recentDocuments.isEmpty {
+            documents = recentDocuments
+            selectedDocument = recentDocuments.first
+            hasLoadedRecentFiles = true
+        }
+    }
+    
+    private func saveRecentFiles(_ documents: [CodeDocument]) {
+        // Only save documents that have a file URL (i.e., saved files)
+        let savedDocuments = documents.filter { $0.fileURL != nil }
+        DocumentPersistence.saveRecentFiles(savedDocuments)
     }
     
     private func toggleSidebar() {
@@ -340,6 +395,36 @@ struct NewFileSheet: View {
         }
         .padding()
         .frame(width: 400, height: 250)
+    }
+}
+
+// MARK: - Notification Handlers ViewModifier
+
+struct NotificationHandlers: ViewModifier {
+    @Binding var showNewFileSheet: Bool
+    let selectedDocument: CodeDocument?
+    @Binding var triggerPrint: Bool
+    @Binding var showHelpWindow: Bool
+    let onOpenFile: () -> Void
+    let onSaveDocument: () -> Void
+    
+    func body(content: Content) -> some View {
+        content
+            .onReceive(NotificationCenter.default.publisher(for: .createNewFile)) { _ in
+                showNewFileSheet = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .openFile)) { _ in
+                onOpenFile()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .saveFile)) { _ in
+                onSaveDocument()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .printFile)) { _ in
+                triggerPrint.toggle()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .showHelpWindow)) { _ in
+                showHelpWindow = true
+            }
     }
 }
 
