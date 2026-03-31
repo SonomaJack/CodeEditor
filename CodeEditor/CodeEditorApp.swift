@@ -28,6 +28,7 @@ struct CodeEditorApp: App {
             }
             
             // Edit Menu
+            
             CommandGroup(after: .pasteboard) {
                 Divider()
                 
@@ -73,6 +74,16 @@ struct CodeEditorApp: App {
                 }
                 .keyboardShortcut("/", modifiers: [.command])
             }
+            
+            // Settings Menu
+            CommandGroup(after: .appInfo) {
+                Button("Settings...") {
+                    NotificationCenter.default.post(name: .showSettings, object: nil)
+                }
+                .keyboardShortcut(",", modifiers: .command)
+                
+                Divider()
+            }
         }
     }
 }
@@ -88,4 +99,5 @@ extension Notification.Name {
     static let findNext = Notification.Name("findNext")
     static let findPrevious = Notification.Name("findPrevious")
     static let showHelpWindow = Notification.Name("showHelpWindow")
+    static let showSettings = Notification.Name("showSettings")
 }

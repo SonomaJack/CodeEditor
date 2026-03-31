@@ -19,6 +19,7 @@ struct ContentView: View {
     @State private var triggerPrint = false
     @State private var hasLoadedRecentFiles = false
     @State private var showHelpWindow = false
+    @State private var showSettingsWindow = false
     
     var body: some View {
         NavigationSplitView {
@@ -57,6 +58,9 @@ struct ContentView: View {
             }
             .frame(width: 600, height: 400)
         }
+        .sheet(isPresented: $showSettingsWindow) {
+            SettingsView()
+        }
         .alert("Error", isPresented: $showErrorAlert) {
             Button("OK", role: .cancel) { }
         } message: {
@@ -73,6 +77,7 @@ struct ContentView: View {
             selectedDocument: selectedDocument,
             triggerPrint: $triggerPrint,
             showHelpWindow: $showHelpWindow,
+            showSettingsWindow: $showSettingsWindow,
             onOpenFile: openFile,
             onSaveDocument: { if let doc = selectedDocument { saveDocument(doc) } }
         ))
@@ -405,6 +410,7 @@ struct NotificationHandlers: ViewModifier {
     let selectedDocument: CodeDocument?
     @Binding var triggerPrint: Bool
     @Binding var showHelpWindow: Bool
+    @Binding var showSettingsWindow: Bool
     let onOpenFile: () -> Void
     let onSaveDocument: () -> Void
     
@@ -424,6 +430,9 @@ struct NotificationHandlers: ViewModifier {
             }
             .onReceive(NotificationCenter.default.publisher(for: .showHelpWindow)) { _ in
                 showHelpWindow = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .showSettings)) { _ in
+                showSettingsWindow = true
             }
     }
 }

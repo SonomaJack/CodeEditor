@@ -17,12 +17,12 @@ class PrintCoordinator {
         let fileURL = document.fileURL
         let lastSaveDate = document.lastSaveDate
         
-        // Create print info with scaling enabled
+        // Create print info with NO margins - we'll handle all spacing ourselves
         let printInfo = NSPrintInfo()
-        printInfo.topMargin = 108 // Increased for header (72 + 36)
-        printInfo.bottomMargin = 108 // Increased for footer (72 + 36)
-        printInfo.leftMargin = 72
-        printInfo.rightMargin = 72
+        printInfo.topMargin = 0
+        printInfo.bottomMargin = 0
+        printInfo.leftMargin = 0
+        printInfo.rightMargin = 0
         printInfo.horizontalPagination = .fit
         printInfo.verticalPagination = .automatic
         printInfo.isHorizontallyCentered = false
@@ -271,6 +271,8 @@ class PrintViewWithHeaderFooter: NSView {
     let fileURL: URL?
     let lastSaveDate: Date?
     let printInfo: NSPrintInfo
+    private var currentPageNumber: Int = 1
+    private var totalPageCount: Int = 1
     
     init(textView: PrintableTextView, filename: String, fileURL: URL?, lastSaveDate: Date?, printInfo: NSPrintInfo) {
         self.textView = textView
@@ -280,55 +282,10 @@ class PrintViewWithHeaderFooter: NSView {
         self.printInfo = printInfo
         
         super.init(frame: textView.frame)
-        addSubview(textView)
     }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
-    }
-    
-    override func draw(_ dirtyRect: NSRect) {
-        super.draw(dirtyRect)
-        
-        let paperSize = printInfo.paperSize
-        let leftMargin = printInfo.leftMargin
-        let rightMargin = printInfo.rightMargin
-        
-        // Calculate header and footer areas
-        let headerY = paperSize.height - 60
-        let footerY: CGFloat = 40
-        
-        let font = NSFont.systemFont(ofSize: 9)
-        let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.alignment = .left
-        
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .foregroundColor: NSColor.black,
-            .paragraphStyle: paragraphStyle
-        ]
-        
-        // Draw header (file path)
-        let headerText = fileURL?.path ?? filename
-        let headerRect = NSRect(x: leftMargin, y: headerY, width: paperSize.width - leftMargin - rightMargin, height: 20)
-        (headerText as NSString).draw(in: headerRect, withAttributes: attributes)
-        
-        // Draw footer
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateStyle = .medium
-        dateFormatter.timeStyle = .short
-        
-        let printedDate = "Printed: \(dateFormatter.string(from: Date()))"
-        let footerRect = NSRect(x: leftMargin, y: footerY, width: paperSize.width - leftMargin - rightMargin, height: 20)
-        (printedDate as NSString).draw(in: footerRect, withAttributes: attributes)
-        
-        // Draw last save date if available
-        if let saveDate = lastSaveDate {
-            let saveText = "Last saved: \(dateFormatter.string(from: saveDate))"
-            let size = (saveText as NSString).size(withAttributes: attributes)
-            let saveRect = NSRect(x: paperSize.width - rightMargin - size.width, y: footerY, width: size.width, height: 20)
-            (saveText as NSString).draw(in: saveRect, withAttributes: attributes)
-        }
     }
     
     override var isFlipped: Bool {
@@ -336,11 +293,108 @@ class PrintViewWithHeaderFooter: NSView {
     }
     
     override func knowsPageRange(_ range: NSRangePointer) -> Bool {
-        return textView.knowsPageRange(range)
+        // Let the text view calculate the page range
+        let result = textView.knowsPageRange(range)
+        totalPageCount = range.pointee.length
+        return result
     }
     
     override func rectForPage(_ page: Int) -> NSRect {
-        return textView.rectForPage(page)
+        currentPageNumber = page
+        
+        // Get the text view's rect for this page
+        var pageRect = textView.rectForPage(page)
+        
+        // Expand to include margins for header/footer
+        let paperSize = printInfo.paperSize
+        pageRect = NSRect(x: 0, y: 0, width: paperSize.width, height: paperSize.height)
+        
+        return pageRect
+    }
+    
+    override func draw(_ dirtyRect: NSRect) {
+        guard NSGraphicsContext.current != nil else { return }
+        guard let currentPrintInfo = NSPrintOperation.current?.printInfo else { return }
+        
+        // Fill with white
+        NSColor.white.setFill()
+        dirtyRect.fill()
+        
+        let paperSize = currentPrintInfo.paperSize
+        
+        // Define our own margins since printInfo margins are 0
+        let leftMargin: CGFloat = 36
+        let rightMargin: CGFloat = 36
+        let topMargin: CGFloat = 54
+        let bottomMargin: CGFloat = 54
+        let contentWidth = paperSize.width - leftMargin - rightMargin
+        
+        // Draw header at the very top
+        let font = NSFont.systemFont(ofSize: 8)
+        let headerY: CGFloat = 8
+        let headerText = fileURL?.path ?? filename
+        let headerAttrs: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: NSColor.gray
+        ]
+        (headerText as NSString).draw(at: NSPoint(x: leftMargin, y: headerY), withAttributes: headerAttrs)
+        
+        // Draw header line
+        let headerLineY: CGFloat = 20
+        NSColor.lightGray.setStroke()
+        let headerLine = NSBezierPath()
+        headerLine.move(to: NSPoint(x: leftMargin, y: headerLineY))
+        headerLine.line(to: NSPoint(x: leftMargin + contentWidth, y: headerLineY))
+        headerLine.lineWidth = 0.5
+        headerLine.stroke()
+        
+        // Draw text content
+        let contentStartY = topMargin
+        let contentEndY = paperSize.height - bottomMargin
+        let contentHeight = contentEndY - contentStartY
+        
+        NSGraphicsContext.saveGraphicsState()
+        let pageRect = textView.rectForPage(currentPageNumber)
+        let transform = NSAffineTransform()
+        transform.translateX(by: leftMargin, yBy: contentStartY - pageRect.minY)
+        transform.concat()
+        NSBezierPath(rect: NSRect(x: 0, y: pageRect.minY, width: contentWidth, height: contentHeight)).addClip()
+        textView.draw(pageRect)
+        NSGraphicsContext.restoreGraphicsState()
+        
+        // Draw footer line
+        let footerLineY = paperSize.height - 40
+        let footerLine = NSBezierPath()
+        footerLine.move(to: NSPoint(x: leftMargin, y: footerLineY))
+        footerLine.line(to: NSPoint(x: leftMargin + contentWidth, y: footerLineY))
+        footerLine.lineWidth = 0.5
+        footerLine.stroke()
+        
+        // Draw footer
+        let footerY = paperSize.height - 30
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .short
+        dateFormatter.timeStyle = .short
+        
+        let footerAttrs: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: NSColor.gray
+        ]
+        
+        let printedText = "Printed: \(dateFormatter.string(from: Date()))"
+        (printedText as NSString).draw(at: NSPoint(x: leftMargin, y: footerY), withAttributes: footerAttrs)
+        
+        let pageText = "Page \(currentPageNumber) of \(totalPageCount)"
+        let pageWidth = (pageText as NSString).size(withAttributes: footerAttrs).width
+        (pageText as NSString).draw(at: NSPoint(x: leftMargin + (contentWidth - pageWidth) / 2, y: footerY), withAttributes: footerAttrs)
+        
+        if let saveDate = lastSaveDate {
+            let savedText = "Saved: \(dateFormatter.string(from: saveDate))"
+            let savedWidth = (savedText as NSString).size(withAttributes: footerAttrs).width
+            (savedText as NSString).draw(at: NSPoint(x: leftMargin + contentWidth - savedWidth, y: footerY), withAttributes: footerAttrs)
+        }
     }
 }
+
+
 

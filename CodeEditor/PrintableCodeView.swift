@@ -10,6 +10,10 @@ import SwiftUI
 
 class PrintableTextView: NSTextView {
     
+    // Space reserved for header and footer outside the text area
+    static let headerSpace: CGFloat = 54  // Matches topMargin in draw method
+    static let footerSpace: CGFloat = 54  // Matches bottomMargin in draw method
+    
     override var isFlipped: Bool {
         return true
     }
@@ -27,7 +31,8 @@ class PrintableTextView: NSTextView {
         
         // Calculate the number of pages
         let paperHeight = printInfo.paperSize.height
-        let printableHeight = paperHeight - printInfo.topMargin - printInfo.bottomMargin
+        // Account for header and footer space since margins are 0
+        let printableHeight = paperHeight - PrintableTextView.headerSpace - PrintableTextView.footerSpace
         let usedRect = layoutManager.usedRect(for: textContainer)
         
         let pageCount = Int(ceil(usedRect.height / printableHeight))
@@ -42,7 +47,8 @@ class PrintableTextView: NSTextView {
         }
         
         let paperHeight = printInfo.paperSize.height
-        let printableHeight = paperHeight - printInfo.topMargin - printInfo.bottomMargin
+        // Account for header and footer space since margins are 0
+        let printableHeight = paperHeight - PrintableTextView.headerSpace - PrintableTextView.footerSpace
         
         // Calculate the rect for this page
         let yOffset = CGFloat(page - 1) * printableHeight

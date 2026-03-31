@@ -17,6 +17,9 @@ struct CodeEditorView: View {
     @State private var showFind = false
     @State private var showReplace = false
     @State private var highlightRange: HighlightRange? = nil
+    @State private var showPremiumGate = false
+    @State private var premiumFeatureMessage = ""
+    @StateObject private var store = StoreManager.shared
     
     var body: some View {
         VStack(spacing: 0) {
@@ -35,11 +38,26 @@ struct CodeEditorView: View {
                 
                 Picker("Language", selection: $document.language) {
                     ForEach(CodeLanguage.allCases) { language in
-                        Text(language.rawValue).tag(language)
+                        HStack {
+                            Text(language.rawValue)
+                            if !FeatureAccess.canUseLanguage(language) {
+                                Image(systemName: "lock.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .tag(language)
                     }
                 }
                 .pickerStyle(.menu)
                 .frame(width: 180)
+                .onChange(of: document.language) { oldValue, newValue in
+                    if !FeatureAccess.canUseLanguage(newValue) {
+                        document.language = oldValue
+                        premiumFeatureMessage = FeatureAccess.featureDescription(for: .language(newValue))
+                        showPremiumGate = true
+                    }
+                }
                 
                 Button(action: { 
                     showFind.toggle()
@@ -53,9 +71,14 @@ struct CodeEditorView: View {
                 .keyboardShortcut("f", modifiers: .command)
                 
                 Button(action: { 
-                    showReplace.toggle()
-                    if showReplace {
-                        showFind = false
+                    if FeatureAccess.canUseFindAndReplace {
+                        showReplace.toggle()
+                        if showReplace {
+                            showFind = false
+                        }
+                    } else {
+                        premiumFeatureMessage = FeatureAccess.featureDescription(for: .findAndReplace)
+                        showPremiumGate = true
                     }
                 }) {
                     Label("Replace", systemImage: "arrow.triangle.2.circlepath")
@@ -63,7 +86,14 @@ struct CodeEditorView: View {
                 .help("Find and replace")
                 .keyboardShortcut("h", modifiers: [.command, .option])
                 
-                Button(action: printDocument) {
+                Button(action: {
+                    if FeatureAccess.canUsePrinting {
+                        printDocument()
+                    } else {
+                        premiumFeatureMessage = FeatureAccess.featureDescription(for: .printing)
+                        showPremiumGate = true
+                    }
+                }) {
                     Label("Print", systemImage: "printer")
                 }
                 .help("Print document")
@@ -139,7 +169,7 @@ struct CodeEditorView: View {
             }
             
             // Completion suggestions
-            if showSuggestions && !suggestions.isEmpty {
+            if showSuggestions && !suggestions.isEmpty && FeatureAccess.canUseCodeCompletion {
                 Divider()
                 
                 ScrollView {
@@ -154,6 +184,9 @@ struct CodeEditorView: View {
                 .frame(maxHeight: 200)
                 .background(Color(nsColor: .controlBackgroundColor))
             }
+        }
+        .sheet(isPresented: $showPremiumGate) {
+            PremiumFeatureView(feature: premiumFeatureMessage)
         }
         .onChange(of: triggerPrint) { _, _ in
             printDocument()
@@ -192,6 +225,12 @@ struct CodeEditorView: View {
     }
     
     private func updateSuggestions() {
+        guard FeatureAccess.canUseCodeCompletion else {
+            suggestions = []
+            showSuggestions = false
+            return
+        }
+        
         cursorPosition = document.content.count
         let newSuggestions = CodeCompletionEngine.getSuggestions(
             for: document.content,
