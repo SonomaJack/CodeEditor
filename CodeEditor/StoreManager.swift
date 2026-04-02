@@ -7,6 +7,7 @@
 
 import StoreKit
 import SwiftUI
+import Combine
 
 /// Product identifiers for in-app purchases
 enum ProductID: String, CaseIterable {
@@ -67,7 +68,7 @@ class StoreManager: ObservableObject {
     }
     
     /// Purchase a product
-    func purchase(_ product: Product) async throws -> Transaction? {
+    func purchase(_ product: Product) async throws -> StoreKit.Transaction? {
         let result = try await product.purchase()
         
         switch result {
@@ -108,7 +109,7 @@ class StoreManager: ObservableObject {
     private func updatePurchasedProducts() async {
         var purchased: Set<String> = []
         
-        for await result in Transaction.currentEntitlements {
+        for await result in StoreKit.Transaction.currentEntitlements {
             do {
                 let transaction = try checkVerified(result)
                 purchased.insert(transaction.productID)
@@ -123,9 +124,11 @@ class StoreManager: ObservableObject {
     /// Listen for transaction updates
     private func listenForTransactions() -> Task<Void, Never> {
         return Task.detached {
-            for await result in Transaction.updates {
+            for await result in StoreKit.Transaction.updates {
                 do {
-                    let transaction = try self.checkVerified(result)
+                    let transaction = try await MainActor.run {
+                        try self.checkVerified(result)
+                    }
                     await transaction.finish()
                     await self.updatePurchasedProducts()
                 } catch {

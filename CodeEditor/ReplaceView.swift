@@ -32,6 +32,42 @@ struct ReplaceView: View {
     }
     @State private var showingResults = false
     @State private var showColumnOptions = false
+    @FocusState private var isSearchFieldFocused: Bool
+    
+    // Undo support
+    @State private var undoStack: [String] = []
+    @State private var canUndo = false
+    
+    // Replace completion message
+    @State private var showReplaceMessage = false
+    @State private var replaceMessage = ""
+    
+    // Special characters menu
+    @State private var showSpecialCharsMenu = false
+    @State private var specialCharTarget: SpecialCharTarget = .search
+    
+    enum SpecialCharTarget {
+        case search
+        case replace
+    }
+    
+    // Special character definitions
+    struct SpecialChar: Identifiable {
+        let id = UUID()
+        let name: String
+        let display: String
+        let actual: String
+        let description: String
+    }
+    
+    let specialChars: [SpecialChar] = [
+        SpecialChar(name: "Tab", display: "\\t", actual: "\t", description: "Tab character"),
+        SpecialChar(name: "Newline", display: "\\n", actual: "\n", description: "Line feed (LF)"),
+        SpecialChar(name: "Carriage Return", display: "\\r", actual: "\r", description: "Carriage return (CR)"),
+        SpecialChar(name: "CR+LF", display: "\\r\\n", actual: "\r\n", description: "Windows line ending"),
+        SpecialChar(name: "Space", display: "·", actual: " ", description: "Space character"),
+        SpecialChar(name: "Non-breaking Space", display: "NBSP", actual: "\u{00A0}", description: "Non-breaking space"),
+    ]
     
     var body: some View {
         VStack(spacing: 0) {
@@ -62,6 +98,7 @@ struct ReplaceView: View {
                     
                     TextField("Find", text: $searchText)
                         .textFieldStyle(.plain)
+                        .focused($isSearchFieldFocused)
                         .onSubmit {
                             findNext()
                         }
@@ -72,6 +109,19 @@ struct ReplaceView: View {
                                 currentResultIndex = 0
                             }
                         }
+                    
+                    Button(action: { 
+                        specialCharTarget = .search
+                        showSpecialCharsMenu.toggle()
+                    }) {
+                        Image(systemName: "character.textbox")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Insert special character")
+                    .popover(isPresented: $showSpecialCharsMenu) {
+                        specialCharactersMenu
+                    }
                     
                     if !searchText.isEmpty {
                         Button(action: { searchText = "" }) {
@@ -92,6 +142,16 @@ struct ReplaceView: View {
                     
                     TextField("Replace with", text: $replaceText)
                         .textFieldStyle(.plain)
+                    
+                    Button(action: { 
+                        specialCharTarget = .replace
+                        showSpecialCharsMenu.toggle()
+                    }) {
+                        Image(systemName: "character.textbox")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Insert special character")
                     
                     if !replaceText.isEmpty {
                         Button(action: { replaceText = "" }) {
@@ -228,7 +288,20 @@ struct ReplaceView: View {
                     }
                     .disabled(searchText.isEmpty)
                     
+                    Button(action: undo) {
+                        Image(systemName: "arrow.uturn.backward")
+                    }
+                    .disabled(!canUndo)
+                    .help("Undo last replacement")
+                    
                     Spacer()
+                    
+                    if showReplaceMessage {
+                        Text(replaceMessage)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.green)
+                            .transition(.opacity)
+                    }
                     
                     if showingResults {
                         Text("\(searchResults.count) result\(searchResults.count == 1 ? "" : "s")")
@@ -266,6 +339,9 @@ struct ReplaceView: View {
         }
         .frame(minWidth: 600)
         .background(Color(nsColor: .windowBackgroundColor))
+        .onAppear {
+            isSearchFieldFocused = true
+        }
     }
     
     // MARK: - Find Operations
@@ -276,6 +352,12 @@ struct ReplaceView: View {
         
         guard !searchText.isEmpty else {
             showingResults = false
+            return
+        }
+        
+        // Check if search text contains line breaks - needs special handling
+        if searchText.contains("\n") || searchText.contains("\r") {
+            findAllWithLineBreaks()
             return
         }
         
@@ -341,11 +423,56 @@ struct ReplaceView: View {
         }
     }
     
+    private func findAllWithLineBreaks() {
+        // Special handling for searches containing line breaks
+        // Search directly in the document content without splitting
+        let options: String.CompareOptions = caseSensitive ? [] : .caseInsensitive
+        var searchRange = documentContent.startIndex..<documentContent.endIndex
+        
+        while let range = documentContent.range(of: searchText, options: options, range: searchRange) {
+            // Calculate which line this match starts on
+            let precedingText = String(documentContent[..<range.lowerBound])
+            let lineNumber = precedingText.components(separatedBy: "\n").count
+            
+            // Calculate column position on the starting line
+            let lines = precedingText.components(separatedBy: "\n")
+            let columnStart = (lines.last?.count ?? 0) + 1
+            
+            // For display purposes, show first line of match
+            let matchText = String(documentContent[range])
+            let firstLine = matchText.components(separatedBy: "\n").first ?? matchText
+            let displayText = firstLine + (matchText.contains("\n") ? " ↵" : "")
+            
+            let columnEnd = columnStart + searchText.count
+            
+            searchResults.append(SearchResult(
+                lineNumber: lineNumber,
+                columnStart: columnStart,
+                columnEnd: columnEnd,
+                lineContent: displayText,
+                matchedText: matchText
+            ))
+            
+            searchRange = range.upperBound..<documentContent.endIndex
+        }
+        
+        showingResults = true
+        if !searchResults.isEmpty {
+            currentResultIndex = 0
+        }
+    }
+    
     private func performQuietSearch() {
         searchResults = []
         currentResultIndex = nil
         
         guard !searchText.isEmpty else { return }
+        
+        // Check if search text contains line breaks - needs special handling
+        if searchText.contains("\n") || searchText.contains("\r") {
+            findAllWithLineBreaks()
+            return
+        }
         
         let lines = documentContent.split(separator: "\n", omittingEmptySubsequences: false)
         
@@ -377,8 +504,14 @@ struct ReplaceView: View {
         guard let currentIndex = currentResultIndex,
               currentIndex < searchResults.count else { return }
         
+        // Save state for undo
+        saveStateForUndo()
+        
         let result = searchResults[currentIndex]
         replaceMatch(at: result)
+        
+        // Show message
+        showMessage("Replaced 1 occurrence")
         
         // Refresh search results after replacement
         findAll()
@@ -391,19 +524,70 @@ struct ReplaceView: View {
             findAll()
         }
         
-        guard !searchResults.isEmpty else { return }
+        guard !searchResults.isEmpty else {
+            showMessage("No matches found")
+            return
+        }
         
-        // Replace from end to start to maintain valid indices
-        let sortedResults = searchResults.sorted { first, second in
-            if first.lineNumber != second.lineNumber {
-                return first.lineNumber > second.lineNumber
+        let matchCount = searchResults.count
+        
+        // Save state for undo
+        saveStateForUndo()
+        
+        // If searching for line breaks, use direct string replacement
+        if searchText.contains("\n") || searchText.contains("\r") {
+            let options: String.CompareOptions = caseSensitive ? [] : .caseInsensitive
+            documentContent = documentContent.replacingOccurrences(of: searchText, with: replaceText, options: options)
+            isModified = true
+            
+            // Show message
+            showMessage("Replaced \(matchCount) occurrence\(matchCount == 1 ? "" : "s")")
+            
+            // Refresh search results
+            findAll()
+            return
+        }
+        
+        // Process all replacements line by line to handle column shifts correctly
+        var lines = documentContent.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        
+        // Group results by line number
+        var resultsByLine: [Int: [SearchResult]] = [:]
+        for result in searchResults {
+            if resultsByLine[result.lineNumber] == nil {
+                resultsByLine[result.lineNumber] = []
             }
-            return first.columnStart > second.columnStart
+            resultsByLine[result.lineNumber]?.append(result)
         }
         
-        for result in sortedResults {
-            replaceMatch(at: result)
+        // Process each line that has matches
+        for (lineNumber, lineResults) in resultsByLine {
+            let lineIndex = lineNumber - 1
+            guard lineIndex < lines.count else { continue }
+            
+            var line = lines[lineIndex]
+            
+            // Sort results within this line by column position (right to left)
+            let sortedLineResults = lineResults.sorted { $0.columnStart > $1.columnStart }
+            
+            // Replace matches from right to left to maintain valid positions
+            for result in sortedLineResults {
+                let startIndex = line.index(line.startIndex, offsetBy: result.columnStart - 1, limitedBy: line.endIndex) ?? line.endIndex
+                let endIndex = line.index(line.startIndex, offsetBy: result.columnEnd - 1, limitedBy: line.endIndex) ?? line.endIndex
+                
+                guard startIndex <= endIndex else { continue }
+                
+                line.replaceSubrange(startIndex..<endIndex, with: replaceText)
+            }
+            
+            lines[lineIndex] = line
         }
+        
+        documentContent = lines.joined(separator: "\n")
+        isModified = true
+        
+        // Show message
+        showMessage("Replaced \(matchCount) occurrence\(matchCount == 1 ? "" : "s")")
         
         // Refresh search results
         findAll()
@@ -430,6 +614,78 @@ struct ReplaceView: View {
     }
     
     // MARK: - Helper Methods
+    
+    private var specialCharactersMenu: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Insert Special Character")
+                .font(.headline)
+                .padding(.horizontal, 12)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
+            
+            Divider()
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(specialChars) { char in
+                        Button(action: {
+                            insertSpecialChar(char)
+                            showSpecialCharsMenu = false
+                        }) {
+                            HStack {
+                                Text(char.display)
+                                    .font(.system(.body, design: .monospaced))
+                                    .foregroundStyle(.primary)
+                                    .frame(width: 60, alignment: .leading)
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(char.name)
+                                        .font(.body)
+                                        .foregroundStyle(.primary)
+                                    Text(char.description)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                
+                                Spacer()
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .background(
+                            Color.clear
+                                .contentShape(Rectangle())
+                        )
+                        .onHover { isHovered in
+                            if isHovered {
+                                NSCursor.pointingHand.push()
+                            } else {
+                                NSCursor.pop()
+                            }
+                        }
+                        
+                        if char.id != specialChars.last?.id {
+                            Divider()
+                                .padding(.leading, 12)
+                        }
+                    }
+                }
+            }
+            .frame(height: 240)
+        }
+        .frame(width: 320)
+    }
+    
+    private func insertSpecialChar(_ char: SpecialChar) {
+        switch specialCharTarget {
+        case .search:
+            searchText += char.actual
+        case .replace:
+            replaceText += char.actual
+        }
+    }
     
     private func getSearchRange(for line: String) -> String {
         guard useColumnSearch else { return line }
@@ -495,6 +751,45 @@ struct ReplaceView: View {
         }
         
         return matches
+    }
+    
+    // MARK: - Undo Support
+    
+    private func saveStateForUndo() {
+        undoStack.append(documentContent)
+        // Keep only last 10 states to avoid memory issues
+        if undoStack.count > 10 {
+            undoStack.removeFirst()
+        }
+        canUndo = true
+    }
+    
+    private func undo() {
+        guard let previousState = undoStack.popLast() else { return }
+        documentContent = previousState
+        isModified = true
+        canUndo = !undoStack.isEmpty
+        
+        // Refresh search results
+        findAll()
+        
+        showMessage("Undo complete")
+    }
+    
+    // MARK: - Message Display
+    
+    private func showMessage(_ message: String) {
+        replaceMessage = message
+        withAnimation {
+            showReplaceMessage = true
+        }
+        
+        // Hide message after 3 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            withAnimation {
+                showReplaceMessage = false
+            }
+        }
     }
 }
 

@@ -33,6 +33,7 @@ struct FindReplaceView: View {
         }
     }
     @State private var showingResults = false
+    @FocusState private var isSearchFieldFocused: Bool
     
     var body: some View {
         VStack(spacing: 0) {
@@ -63,6 +64,7 @@ struct FindReplaceView: View {
                     
                     TextField("Find", text: $searchText)
                         .textFieldStyle(.plain)
+                        .focused($isSearchFieldFocused)
                         .onSubmit {
                             findAll()
                         }
@@ -260,6 +262,9 @@ struct FindReplaceView: View {
         }
         .frame(minWidth: 600)
         .background(Color(nsColor: .windowBackgroundColor))
+        .onAppear {
+            isSearchFieldFocused = true
+        }
     }
     
     // MARK: - Find Operations

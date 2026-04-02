@@ -30,6 +30,27 @@ struct FindView: View {
     }
     @State private var showingResults = false
     @State private var showColumnOptions = false
+    @State private var showPremiumGate = false
+    @FocusState private var isSearchFieldFocused: Bool
+    @State private var showSpecialCharsMenu = false
+    
+    // Special character definitions
+    struct SpecialChar: Identifiable {
+        let id = UUID()
+        let name: String
+        let display: String
+        let actual: String
+        let description: String
+    }
+    
+    let specialChars: [SpecialChar] = [
+        SpecialChar(name: "Tab", display: "\\t", actual: "\t", description: "Tab character"),
+        SpecialChar(name: "Newline", display: "\\n", actual: "\n", description: "Line feed (LF)"),
+        SpecialChar(name: "Carriage Return", display: "\\r", actual: "\r", description: "Carriage return (CR)"),
+        SpecialChar(name: "CR+LF", display: "\\r\\n", actual: "\r\n", description: "Windows line ending"),
+        SpecialChar(name: "Space", display: "·", actual: " ", description: "Space character"),
+        SpecialChar(name: "Non-breaking Space", display: "NBSP", actual: "\u{00A0}", description: "Non-breaking space"),
+    ]
     
     var body: some View {
         VStack(spacing: 0) {
@@ -41,6 +62,7 @@ struct FindView: View {
                 
                 TextField("Find", text: $searchText)
                     .textFieldStyle(.plain)
+                    .focused($isSearchFieldFocused)
                     .onSubmit { findNext() }
                     .onChange(of: searchText) { _, _ in
                         // Incremental search - search as you type
@@ -49,6 +71,18 @@ struct FindView: View {
                             currentResultIndex = 0
                         }
                     }
+                
+                Button(action: { 
+                    showSpecialCharsMenu.toggle()
+                }) {
+                    Image(systemName: "character.textbox")
+                        .font(.system(size: 11))
+                }
+                .buttonStyle(.borderless)
+                .help("Insert special character")
+                .popover(isPresented: $showSpecialCharsMenu) {
+                    specialCharactersMenu
+                }
                 
                 if !searchText.isEmpty {
                     Button(action: { searchText = "" }) {
@@ -135,12 +169,25 @@ struct FindView: View {
                 }
                 
                 // Column search toggle
-                Button(action: { showColumnOptions.toggle() }) {
-                    Image(systemName: "tablecells")
-                        .font(.system(size: 11))
+                Button(action: { 
+                    if FeatureAccess.canUseColumnSearch {
+                        showColumnOptions.toggle()
+                    } else {
+                        showPremiumGate = true
+                    }
+                }) {
+                    HStack(spacing: 2) {
+                        Image(systemName: "tablecells")
+                            .font(.system(size: 11))
+                        if !FeatureAccess.canUseColumnSearch {
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 8))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
                 .buttonStyle(.borderless)
-                .help("Column Search")
+                .help(FeatureAccess.canUseColumnSearch ? "Column Search" : "Column Search (Premium)")
                 .background(useColumnSearch ? Color.accentColor.opacity(0.2) : Color.clear)
                 .cornerRadius(4)
                 
@@ -241,6 +288,73 @@ struct FindView: View {
                 .frame(maxHeight: 120)
             }
         }
+        .sheet(isPresented: $showPremiumGate) {
+            PremiumFeatureView(feature: FeatureAccess.featureDescription(for: .columnSearch))
+        }
+        .onAppear {
+            isSearchFieldFocused = true
+        }
+    }
+    
+    // MARK: - Special Characters Menu
+    
+    private var specialCharactersMenu: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Insert Special Character")
+                .font(.headline)
+                .padding(.horizontal, 12)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
+            
+            Divider()
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(specialChars) { char in
+                        Button(action: {
+                            searchText += char.actual
+                            showSpecialCharsMenu = false
+                        }) {
+                            HStack {
+                                Text(char.display)
+                                    .font(.system(.body, design: .monospaced))
+                                    .foregroundStyle(.primary)
+                                    .frame(width: 60, alignment: .leading)
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(char.name)
+                                        .font(.body)
+                                        .foregroundStyle(.primary)
+                                    Text(char.description)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                
+                                Spacer()
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .onHover { isHovered in
+                            if isHovered {
+                                NSCursor.pointingHand.push()
+                            } else {
+                                NSCursor.pop()
+                            }
+                        }
+                        
+                        if char.id != specialChars.last?.id {
+                            Divider()
+                                .padding(.leading, 12)
+                        }
+                    }
+                }
+            }
+            .frame(height: 240)
+        }
+        .frame(width: 320)
     }
     
     // MARK: - Find Operations
@@ -251,6 +365,12 @@ struct FindView: View {
         
         guard !searchText.isEmpty else {
             showingResults = false
+            return
+        }
+        
+        // Check if search text contains line breaks - needs special handling
+        if searchText.contains("\n") || searchText.contains("\r") {
+            findAllWithLineBreaks()
             return
         }
         
@@ -316,11 +436,55 @@ struct FindView: View {
         }
     }
     
+    private func findAllWithLineBreaks() {
+        // Special handling for searches containing line breaks
+        let options: String.CompareOptions = caseSensitive ? [] : .caseInsensitive
+        var searchRange = documentContent.startIndex..<documentContent.endIndex
+        
+        while let range = documentContent.range(of: searchText, options: options, range: searchRange) {
+            // Calculate which line this match starts on
+            let precedingText = String(documentContent[..<range.lowerBound])
+            let lineNumber = precedingText.components(separatedBy: "\n").count
+            
+            // Calculate column position on the starting line
+            let lines = precedingText.components(separatedBy: "\n")
+            let columnStart = (lines.last?.count ?? 0) + 1
+            
+            // For display purposes, show first line of match
+            let matchText = String(documentContent[range])
+            let firstLine = matchText.components(separatedBy: "\n").first ?? matchText
+            let displayText = firstLine + (matchText.contains("\n") ? " ↵" : "")
+            
+            let columnEnd = columnStart + searchText.count
+            
+            searchResults.append(SearchResult(
+                lineNumber: lineNumber,
+                columnStart: columnStart,
+                columnEnd: columnEnd,
+                lineContent: displayText,
+                matchedText: matchText
+            ))
+            
+            searchRange = range.upperBound..<documentContent.endIndex
+        }
+        
+        showingResults = true
+        if !searchResults.isEmpty {
+            currentResultIndex = 0
+        }
+    }
+    
     private func performQuietSearch() {
         searchResults = []
         currentResultIndex = nil
         
         guard !searchText.isEmpty else { return }
+        
+        // Check if search text contains line breaks - needs special handling
+        if searchText.contains("\n") || searchText.contains("\r") {
+            findAllWithLineBreaks()
+            return
+        }
         
         let lines = documentContent.split(separator: "\n", omittingEmptySubsequences: false)
         

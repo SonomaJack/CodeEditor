@@ -18,18 +18,30 @@ struct SyntaxHighlighter {
             highlightSwift(&attributed, code: code)
         case .python:
             highlightPython(&attributed, code: code)
-        case .javascript:
+        case .javascript, .typescript:
             highlightJavaScript(&attributed, code: code)
         case .java:
             highlightJava(&attributed, code: code)
         case .apex:
             highlightApex(&attributed, code: code)
-        case .cpp:
+        case .cpp, .c, .csharp:
             highlightCPP(&attributed, code: code)
-        case .html:
+        case .go, .rust:
+            highlightCPP(&attributed, code: code) // Similar syntax
+        case .ruby:
+            highlightPython(&attributed, code: code) // Similar syntax
+        case .php:
+            highlightPHP(&attributed, code: code)
+        case .sql:
+            highlightSQL(&attributed, code: code)
+        case .html, .xml:
             highlightHTML(&attributed, code: code)
         case .css:
             highlightCSS(&attributed, code: code)
+        case .markdown:
+            highlightMarkdown(&attributed, code: code)
+        case .json, .yaml:
+            highlightJSON(&attributed, code: code)
         case .plaintext:
             break
         }
@@ -173,6 +185,64 @@ struct SyntaxHighlighter {
         highlightPattern(&attributed, code: code, pattern: "\\{|\\}", color: .orange)
         highlightPattern(&attributed, code: code, pattern: "[.#][a-zA-Z][a-zA-Z0-9-_]*", color: .blue)
         highlightComments(&attributed, code: code, singleLine: nil, multiLineStart: "/*", multiLineEnd: "*/", color: .green)
+    }
+    
+    // MARK: - PHP Highlighting
+    private static func highlightPHP(_ attributed: inout AttributedString, code: String) {
+        let keywords = [
+            "function", "class", "if", "else", "elseif", "for", "foreach", "while",
+            "switch", "case", "default", "return", "break", "continue", "echo",
+            "print", "var", "public", "private", "protected", "static", "const",
+            "new", "this", "self", "parent", "extends", "implements", "interface",
+            "abstract", "final", "try", "catch", "throw", "namespace", "use"
+        ]
+        
+        highlightKeywords(&attributed, code: code, keywords: keywords, color: .purple)
+        highlightStrings(&attributed, code: code, color: .red)
+        highlightComments(&attributed, code: code, singleLine: "//", multiLineStart: "/*", multiLineEnd: "*/", color: .green)
+        highlightNumbers(&attributed, code: code, color: .blue)
+    }
+    
+    // MARK: - SQL Highlighting
+    private static func highlightSQL(_ attributed: inout AttributedString, code: String) {
+        let keywords = [
+            "SELECT", "FROM", "WHERE", "INSERT", "INTO", "UPDATE", "DELETE",
+            "CREATE", "TABLE", "ALTER", "DROP", "INDEX", "JOIN", "LEFT", "RIGHT",
+            "INNER", "OUTER", "ON", "ORDER", "BY", "GROUP", "HAVING", "LIMIT",
+            "OFFSET", "AND", "OR", "NOT", "IN", "LIKE", "BETWEEN", "IS", "NULL",
+            "PRIMARY", "KEY", "FOREIGN", "UNIQUE", "DEFAULT", "AUTO_INCREMENT"
+        ]
+        
+        highlightKeywords(&attributed, code: code, keywords: keywords, color: .purple)
+        highlightStrings(&attributed, code: code, color: .red)
+        highlightComments(&attributed, code: code, singleLine: "--", multiLineStart: "/*", multiLineEnd: "*/", color: .green)
+        highlightNumbers(&attributed, code: code, color: .blue)
+    }
+    
+    // MARK: - Markdown Highlighting
+    private static func highlightMarkdown(_ attributed: inout AttributedString, code: String) {
+        // Headers
+        highlightPattern(&attributed, code: code, pattern: "^#{1,6}\\s+.*$", color: .purple, multiline: true)
+        // Bold
+        highlightPattern(&attributed, code: code, pattern: "\\*\\*[^*]+\\*\\*", color: .orange)
+        // Italic
+        highlightPattern(&attributed, code: code, pattern: "\\*[^*]+\\*", color: .blue)
+        // Code blocks
+        highlightPattern(&attributed, code: code, pattern: "`[^`]+`", color: .red)
+        // Links
+        highlightPattern(&attributed, code: code, pattern: "\\[([^\\]]+)\\]\\(([^)]+)\\)", color: .cyan)
+    }
+    
+    // MARK: - JSON/YAML Highlighting
+    private static func highlightJSON(_ attributed: inout AttributedString, code: String) {
+        // Keys (in quotes before colon)
+        highlightPattern(&attributed, code: code, pattern: "\"[^\"]+\"\\s*:", color: .purple)
+        // Strings
+        highlightStrings(&attributed, code: code, color: .red)
+        // Numbers
+        highlightNumbers(&attributed, code: code, color: .blue)
+        // Booleans and null
+        highlightPattern(&attributed, code: code, pattern: "\\b(true|false|null)\\b", color: .orange)
     }
     
     // MARK: - Helper Methods

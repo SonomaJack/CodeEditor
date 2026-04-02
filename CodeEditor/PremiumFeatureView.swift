@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import StoreKit
 
 /// View shown when user tries to access a premium feature
 struct PremiumFeatureView: View {
@@ -15,100 +16,108 @@ struct PremiumFeatureView: View {
     let feature: String
     
     var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "star.circle.fill")
-                .font(.system(size: 60))
-                .foregroundStyle(.yellow)
-            
-            Text("Premium Feature")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-            
-            Text(feature)
-                .font(.headline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-            
-            Divider()
-                .padding(.vertical)
-            
-            VStack(alignment: .leading, spacing: 12) {
-                FeatureRow(icon: "paintpalette", text: "All programming languages")
-                FeatureRow(icon: "arrow.triangle.2.circlepath", text: "Find and Replace")
-                FeatureRow(icon: "printer", text: "Print with headers & footers")
-                FeatureRow(icon: "lightbulb", text: "Code completion suggestions")
-                FeatureRow(icon: "doc.on.doc", text: "Multiple file tabs")
+        ScrollView {
+            VStack(spacing: 20) {
+                Image(systemName: "star.circle.fill")
+                    .font(.system(size: 60))
+                    .foregroundStyle(.yellow)
+                
+                Text("Premium Feature")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                
+                Text(feature)
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+                
+                Divider()
+                    .padding(.vertical)
+                
+                VStack(alignment: .leading, spacing: 12) {
+                    PremiumFeatureRow(icon: "paintpalette", text: "All programming languages")
+                    PremiumFeatureRow(icon: "arrow.triangle.2.circlepath", text: "Find and Replace")
+                    PremiumFeatureRow(icon: "tablecells", text: "Column-restricted search")
+                    PremiumFeatureRow(icon: "printer", text: "Print with headers & footers")
+                    PremiumFeatureRow(icon: "lightbulb", text: "Code completion suggestions")
+                    PremiumFeatureRow(icon: "doc.on.doc", text: "Multiple file tabs")
+                    PremiumFeatureRow(icon: "rectangle.split.3x1", text: "Split view editing")
+                    PremiumFeatureRow(icon: "curlybraces", text: "Code snippets & templates")
+                    PremiumFeatureRow(icon: "arrow.triangle.branch", text: "Git integration")
+                    PremiumFeatureRow(icon: "paintbrush.pointed", text: "Premium color themes")
+                }
+                .padding()
+                .background(Color.secondary.opacity(0.1))
+                .cornerRadius(12)
+                
+                if store.isLoading {
+                    ProgressView()
+                        .padding()
+                } else if let product = store.products.first(where: { $0.id == ProductID.premiumFeatures.rawValue }) {
+                    VStack(spacing: 12) {
+                        Button(action: {
+                            Task {
+                                do {
+                                    _ = try await store.purchase(product)
+                                    dismiss()
+                                } catch {
+                                    print("Purchase failed: \(error)")
+                                }
+                            }
+                        }) {
+                            HStack {
+                                Text("Unlock Premium")
+                                Spacer()
+                                Text(product.displayPrice)
+                            }
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.accentColor)
+                            .foregroundStyle(.white)
+                            .cornerRadius(10)
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Button("Restore Purchases") {
+                            Task {
+                                await store.restorePurchases()
+                                if store.hasPremiumFeatures {
+                                    dismiss()
+                                }
+                            }
+                        }
+                        .foregroundStyle(.secondary)
+                    }
+                }
+                
+                if let errorMessage = store.errorMessage {
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .padding()
+                }
+                
+                Button("Not Now") {
+                    dismiss()
+                }
+                .padding(.top)
+                .padding(.bottom, 20)
             }
             .padding()
-            .background(Color.secondary.opacity(0.1))
-            .cornerRadius(12)
-            
-            if store.isLoading {
-                ProgressView()
-                    .padding()
-            } else if let product = store.products.first(where: { $0.id == ProductID.premiumFeatures.rawValue }) {
-                VStack(spacing: 12) {
-                    Button(action: {
-                        Task {
-                            do {
-                                _ = try await store.purchase(product)
-                                dismiss()
-                            } catch {
-                                print("Purchase failed: \(error)")
-                            }
-                        }
-                    }) {
-                        HStack {
-                            Text("Unlock Premium")
-                            Spacer()
-                            Text(product.displayPrice)
-                        }
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.accentColor)
-                        .foregroundStyle(.white)
-                        .cornerRadius(10)
-                    }
-                    .buttonStyle(.plain)
-                    
-                    Button("Restore Purchases") {
-                        Task {
-                            await store.restorePurchases()
-                            if store.hasPremiumFeatures {
-                                dismiss()
-                            }
-                        }
-                    }
-                    .foregroundStyle(.secondary)
-                }
-            }
-            
-            if let errorMessage = store.errorMessage {
-                Text(errorMessage)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .padding()
-            }
-            
-            Button("Not Now") {
-                dismiss()
-            }
-            .padding(.top)
         }
-        .padding()
-        .frame(width: 500, height: 600)
+        .frame(width: 550, height: 700)
     }
 }
 
-struct FeatureRow: View {
+private struct PremiumFeatureRow: View {
     let icon: String
     let text: String
     
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .foregroundStyle(.accentColor)
+                .foregroundStyle(Color.accentColor)
                 .frame(width: 24)
             Text(text)
             Spacer()

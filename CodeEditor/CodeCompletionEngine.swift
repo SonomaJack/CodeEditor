@@ -64,20 +64,28 @@ class CodeCompletionEngine {
             return getSwiftSuggestions()
         case .python:
             return getPythonSuggestions()
-        case .javascript:
+        case .javascript, .typescript:
             return getJavaScriptSuggestions()
         case .java:
             return getJavaSuggestions()
         case .apex:
             return getApexSuggestions()
-        case .cpp:
+        case .cpp, .c, .csharp:
             return getCPPSuggestions()
-        case .html:
+        case .go, .rust:
+            return getCPPSuggestions() // Similar C-style syntax
+        case .ruby:
+            return getPythonSuggestions() // Similar syntax
+        case .php:
+            return getPHPSuggestions()
+        case .sql:
+            return getSQLSuggestions()
+        case .html, .xml:
             return getHTMLSuggestions()
         case .css:
             return getCSSSuggestions()
-        case .plaintext:
-            return []
+        case .markdown, .json, .yaml, .plaintext:
+            return [] // No code completion for markup/data formats
         }
     }
     
@@ -297,8 +305,50 @@ class CodeCompletionEngine {
             CompletionSuggestion(text: "height", type: .keyword, description: "Height property"),
             CompletionSuggestion(text: "font-size", type: .keyword, description: "Font size"),
             CompletionSuggestion(text: "border", type: .keyword, description: "Border property"),
-            CompletionSuggestion(text: "flex", type: .keyword, description: "Flex property"),
+            CompletionSuggestion(text: "flex", type: .keyword, description: "Flexbox property"),
             CompletionSuggestion(text: "grid", type: .keyword, description: "Grid property"),
         ]
     }
+    
+    // MARK: - PHP Suggestions
+    private static func getPHPSuggestions() -> [CompletionSuggestion] {
+        return [
+            CompletionSuggestion(text: "function", type: .keyword, description: "Function declaration"),
+            CompletionSuggestion(text: "class", type: .keyword, description: "Class declaration"),
+            CompletionSuggestion(text: "public", type: .keyword, description: "Public access modifier"),
+            CompletionSuggestion(text: "private", type: .keyword, description: "Private access modifier"),
+            CompletionSuggestion(text: "protected", type: .keyword, description: "Protected access modifier"),
+            CompletionSuggestion(text: "if", type: .keyword, description: "Conditional statement"),
+            CompletionSuggestion(text: "else", type: .keyword, description: "Else clause"),
+            CompletionSuggestion(text: "foreach", type: .keyword, description: "Foreach loop"),
+            CompletionSuggestion(text: "echo", type: .keyword, description: "Output statement"),
+            CompletionSuggestion(text: "return", type: .keyword, description: "Return statement"),
+            CompletionSuggestion(text: "new", type: .keyword, description: "Object instantiation"),
+            CompletionSuggestion(text: "extends", type: .keyword, description: "Class inheritance"),
+            CompletionSuggestion(text: "namespace", type: .keyword, description: "Namespace declaration"),
+            CompletionSuggestion(text: "use", type: .keyword, description: "Import statement"),
+        ]
+    }
+    
+    // MARK: - SQL Suggestions
+    private static func getSQLSuggestions() -> [CompletionSuggestion] {
+        return [
+            CompletionSuggestion(text: "SELECT", type: .keyword, description: "Select data"),
+            CompletionSuggestion(text: "FROM", type: .keyword, description: "Table source"),
+            CompletionSuggestion(text: "WHERE", type: .keyword, description: "Filter condition"),
+            CompletionSuggestion(text: "INSERT INTO", type: .keyword, description: "Insert data"),
+            CompletionSuggestion(text: "UPDATE", type: .keyword, description: "Update data"),
+            CompletionSuggestion(text: "DELETE FROM", type: .keyword, description: "Delete data"),
+            CompletionSuggestion(text: "CREATE TABLE", type: .keyword, description: "Create table"),
+            CompletionSuggestion(text: "ALTER TABLE", type: .keyword, description: "Alter table"),
+            CompletionSuggestion(text: "DROP TABLE", type: .keyword, description: "Drop table"),
+            CompletionSuggestion(text: "JOIN", type: .keyword, description: "Join tables"),
+            CompletionSuggestion(text: "LEFT JOIN", type: .keyword, description: "Left outer join"),
+            CompletionSuggestion(text: "INNER JOIN", type: .keyword, description: "Inner join"),
+            CompletionSuggestion(text: "ORDER BY", type: .keyword, description: "Sort results"),
+            CompletionSuggestion(text: "GROUP BY", type: .keyword, description: "Group results"),
+            CompletionSuggestion(text: "LIMIT", type: .keyword, description: "Limit results"),
+        ]
+    }
 }
+

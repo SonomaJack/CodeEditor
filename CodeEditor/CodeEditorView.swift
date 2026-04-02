@@ -6,20 +6,37 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct CodeEditorView: View {
     @Bindable var document: CodeDocument
     @Binding var triggerPrint: Bool
+    @State private var fontSize: CGFloat = UserDefaults.standard.object(forKey: "fontSize") as? CGFloat ?? 13
+    @State private var showStatusBar = true
     @State private var suggestions: [CompletionSuggestion] = []
     @State private var showSuggestions = false
     @State private var cursorPosition = 0
+    @State private var cursorLine = 1
+    @State private var cursorColumn = 1
+    @State private var selectionLength = 0
     @State private var showPrintPanel = false
     @State private var showFind = false
     @State private var showReplace = false
+    @State private var showGoToLine = false
+    @State private var goToLineText = ""
     @State private var highlightRange: HighlightRange? = nil
     @State private var showPremiumGate = false
     @State private var premiumFeatureMessage = ""
+    @State private var showSaveError = false
+    @State private var saveErrorMessage = ""
+    @State private var showSnippets = false
     @StateObject private var store = StoreManager.shared
+    
+    private var goToLineNumber: Int? {
+        guard let line = Int(goToLineText) else { return nil }
+        let totalLines = document.content.split(separator: "\n", omittingEmptySubsequences: false).count
+        return (line >= 1 && line <= totalLines) ? line : nil
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -30,6 +47,15 @@ struct CodeEditorView: View {
                 
                 Spacer()
                 
+                // Font size indicator
+                Text("\(Int(fontSize))pt")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.secondary.opacity(0.1))
+                    .cornerRadius(4)
+                
                 // Line numbers toggle
                 Button(action: { document.showLineNumbers.toggle() }) {
                     Label("Line Numbers", systemImage: document.showLineNumbers ? "list.number" : "list.bullet")
@@ -37,7 +63,7 @@ struct CodeEditorView: View {
                 .help(document.showLineNumbers ? "Hide line numbers" : "Show line numbers")
                 
                 Picker("Language", selection: $document.language) {
-                    ForEach(CodeLanguage.allCases) { language in
+                    ForEach(CodeLanguage.sortedLanguages(hasPremium: store.hasPremiumFeatures)) { language in
                         HStack {
                             Text(language.rawValue)
                             if !FeatureAccess.canUseLanguage(language) {
@@ -98,14 +124,6 @@ struct CodeEditorView: View {
                 }
                 .help("Print document")
                 
-                if let fileURL = document.fileURL {
-                    Button(action: saveDocument) {
-                        Label("Save", systemImage: "square.and.arrow.down")
-                    }
-                    .disabled(!document.isModified)
-                    .help("Save file to \(fileURL.path)")
-                }
-                
                 if document.isModified {
                     Circle()
                         .fill(.orange)
@@ -126,7 +144,8 @@ struct CodeEditorView: View {
                         highlightRange = HighlightRange(
                             lineNumber: result.lineNumber,
                             columnStart: result.columnStart,
-                            columnEnd: result.columnEnd
+                            columnEnd: result.columnEnd,
+                            id: UUID() // Force update with new ID
                         )
                     }
                 )
@@ -144,7 +163,8 @@ struct CodeEditorView: View {
                         highlightRange = HighlightRange(
                             lineNumber: result.lineNumber,
                             columnStart: result.columnStart,
-                            columnEnd: result.columnEnd
+                            columnEnd: result.columnEnd,
+                            id: UUID() // Force update with new ID
                         )
                     }
                 )
@@ -154,18 +174,21 @@ struct CodeEditorView: View {
             
             // Code editor with line numbers
             HStack(spacing: 0) {
-                if document.showLineNumbers {
-                    LineNumberView(text: document.content)
-                        .frame(width: 40)
-                }
-                
                 CodeTextView(
                     text: $document.content,
                     isModified: $document.isModified,
                     language: document.language,
                     showLineNumbers: document.showLineNumbers,
-                    onTextChange: updateSuggestions
+                    fontSize: fontSize,
+                    onTextChange: updateSuggestions,
+                    highlightRange: highlightRange,
+                    onCursorPositionChange: { line, column, selectionLen in
+                        cursorLine = line
+                        cursorColumn = column
+                        selectionLength = selectionLen
+                    }
                 )
+                .id(document.id) // Ensure each document gets its own text view instance
             }
             
             // Completion suggestions
@@ -184,9 +207,118 @@ struct CodeEditorView: View {
                 .frame(maxHeight: 200)
                 .background(Color(nsColor: .controlBackgroundColor))
             }
+            
+            // Status Bar
+            if showStatusBar {
+                Divider()
+                HStack(spacing: 16) {
+                    // Language
+                    HStack(spacing: 4) {
+                        Image(systemName: "doc.text")
+                            .font(.system(size: 10))
+                        Text(document.language.rawValue)
+                            .font(.system(size: 11))
+                    }
+                    
+                    Divider()
+                        .frame(height: 12)
+                    
+                    // Line and Column
+                    Text("Ln \(cursorLine), Col \(cursorColumn)")
+                        .font(.system(size: 11))
+                        .monospacedDigit()
+                    
+                    if selectionLength > 0 {
+                        Text("(\(selectionLength) selected)")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    Divider()
+                        .frame(height: 12)
+                    
+                    // Character count
+                    Text("\(document.content.count) chars")
+                        .font(.system(size: 11))
+                        .monospacedDigit()
+                    
+                    Divider()
+                        .frame(height: 12)
+                    
+                    // Line count
+                    Text("\(document.content.split(separator: "\n", omittingEmptySubsequences: false).count) lines")
+                        .font(.system(size: 11))
+                        .monospacedDigit()
+                    
+                    Spacer()
+                    
+                    // Encoding
+                    Text("UTF-8")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                    
+                    // Modified indicator
+                    if document.isModified {
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(.orange)
+                                .frame(width: 6, height: 6)
+                            Text("Modified")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 4)
+                .background(Color(nsColor: .controlBackgroundColor))
+            }
         }
         .sheet(isPresented: $showPremiumGate) {
             PremiumFeatureView(feature: premiumFeatureMessage)
+        }
+        .sheet(isPresented: $showGoToLine) {
+            VStack(spacing: 16) {
+                Text("Go to Line")
+                    .font(.headline)
+                
+                HStack {
+                    Text("Line:")
+                        .font(.body)
+                    
+                    TextField("", text: $goToLineText)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 100)
+                        .onSubmit {
+                            performGoToLine()
+                        }
+                    
+                    Text("(1-\(document.content.split(separator: "\n", omittingEmptySubsequences: false).count))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                
+                HStack {
+                    Button("Cancel") {
+                        showGoToLine = false
+                        goToLineText = ""
+                    }
+                    .keyboardShortcut(.cancelAction)
+                    
+                    Button("Go") {
+                        performGoToLine()
+                    }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(goToLineNumber == nil)
+                }
+            }
+            .padding()
+            .frame(width: 300)
+        }
+        .alert("Save Error", isPresented: $showSaveError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(saveErrorMessage)
         }
         .onChange(of: triggerPrint) { _, _ in
             printDocument()
@@ -202,13 +334,65 @@ struct CodeEditorView: View {
         .onReceive(NotificationCenter.default.publisher(for: .showHelpWindow)) { _ in
             showHelp()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .saveFile)) { _ in
+            saveDocument()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .saveFileAs)) { _ in
+            showSaveAsDialog()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .goToLine)) { _ in
+            showGoToLine = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .zoomIn)) { _ in
+            zoomIn()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .zoomOut)) { _ in
+            zoomOut()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .resetZoom)) { _ in
+            resetZoom()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .showSnippets)) { _ in
+            showSnippets = true
+        }
     }
     
     private func saveDocument() {
+        // If no file URL exists, show Save As dialog
+        if document.fileURL == nil {
+            showSaveAsDialog()
+            return
+        }
+        
+        // Otherwise, save to existing location
         do {
             try document.save()
         } catch {
-            print("Error saving document: \(error.localizedDescription)")
+            saveErrorMessage = error.localizedDescription
+            showSaveError = true
+        }
+    }
+    
+    private func showSaveAsDialog() {
+        let savePanel = NSSavePanel()
+        savePanel.nameFieldStringValue = document.filename
+        savePanel.canCreateDirectories = true
+        savePanel.isExtensionHidden = false
+        savePanel.allowedContentTypes = [UTType(filenameExtension: String(document.language.fileExtension.dropFirst())) ?? .text]
+        savePanel.message = "Choose a location to save your file"
+        
+        savePanel.begin { response in
+            if response == .OK, let url = savePanel.url {
+                document.fileURL = url
+                document.filename = url.lastPathComponent
+                
+                do {
+                    try document.save()
+                } catch {
+                    saveErrorMessage = error.localizedDescription
+                    showSaveError = true
+                }
+            }
         }
     }
     
@@ -262,6 +446,44 @@ struct CodeEditorView: View {
         
         showSuggestions = false
         suggestions = []
+    }
+    
+    private func goToLine(_ line: Int) {
+        let lines = document.content.split(separator: "\n", omittingEmptySubsequences: false)
+        guard line > 0 && line <= lines.count else { return }
+        
+        var characterOffset = 0
+        for i in 0..<(line - 1) {
+            characterOffset += lines[i].count + 1
+        }
+        
+        highlightRange = HighlightRange(
+            lineNumber: line,
+            columnStart: 1,
+            columnEnd: lines[line - 1].count + 1
+        )
+    }
+    
+    private func performGoToLine() {
+        guard let line = goToLineNumber else { return }
+        goToLine(line)
+        showGoToLine = false
+        goToLineText = ""
+    }
+    
+    private func zoomIn() {
+        fontSize = min(fontSize + 1, 24)
+        UserDefaults.standard.set(fontSize, forKey: "fontSize")
+    }
+    
+    private func zoomOut() {
+        fontSize = max(fontSize - 1, 8)
+        UserDefaults.standard.set(fontSize, forKey: "fontSize")
+    }
+    
+    private func resetZoom() {
+        fontSize = 13
+        UserDefaults.standard.set(fontSize, forKey: "fontSize")
     }
 }
 

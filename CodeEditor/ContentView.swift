@@ -20,10 +20,17 @@ struct ContentView: View {
     @State private var hasLoadedRecentFiles = false
     @State private var showHelpWindow = false
     @State private var showSettingsWindow = false
+    @State private var showWelcome = !UserDefaults.standard.bool(forKey: "hasLaunchedBefore")
+    @State private var showSplitView = false
+    @State private var splitViewDocument: CodeDocument? = nil
+    @State private var showMultiFileSearch = false
+    @State private var isDropTargeted = false
+    @State private var showFeedback = false
     
     var body: some View {
         NavigationSplitView {
             sidebarContent
+                .background(Color(nsColor: .controlBackgroundColor))
         } detail: {
             detailContent
         }
@@ -60,6 +67,19 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showSettingsWindow) {
             SettingsView()
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Close") {
+                            showSettingsWindow = false
+                        }
+                    }
+                }
+        }
+        .sheet(isPresented: $showWelcome) {
+            WelcomeSheet(isPresented: $showWelcome)
+        }
+        .sheet(isPresented: $showFeedback) {
+            FeedbackView()
         }
         .alert("Error", isPresented: $showErrorAlert) {
             Button("OK", role: .cancel) { }
@@ -78,8 +98,13 @@ struct ContentView: View {
             triggerPrint: $triggerPrint,
             showHelpWindow: $showHelpWindow,
             showSettingsWindow: $showSettingsWindow,
+            showMultiFileSearch: $showMultiFileSearch,
+            showSplitView: $showSplitView,
+            showFeedback: $showFeedback,
             onOpenFile: openFile,
-            onSaveDocument: { if let doc = selectedDocument { saveDocument(doc) } }
+            onClearRecentFiles: clearRecentFiles,
+            onOpenSpecificFile: openSpecificFile,
+            onToggleSplitView: toggleSplitView
         ))
     }
     
@@ -95,12 +120,16 @@ struct ContentView: View {
             fileList
         }
         .frame(minWidth: 200)
-        .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Button(action: toggleSidebar) {
-                    Image(systemName: "sidebar.left")
-                }
-            }
+        .clipped() // Prevent content from extending beyond bounds
+        .overlay(
+            isDropTargeted ?
+                RoundedRectangle(cornerRadius: 0)
+                    .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 2, dash: [8, 4]))
+                    .padding(2)
+                : nil
+        )
+        .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
+            handleDrop(providers: providers)
         }
     }
     
@@ -156,8 +185,12 @@ struct ContentView: View {
         List(selection: $selectedDocument) {
             ForEach(documents) { document in
                 documentRow(for: document)
+                    .tag(document)
+                    .listRowInsets(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
             }
         }
+        .listStyle(.sidebar)
+        .scrollContentBackground(.hidden)
     }
     
     private func documentRow(for document: CodeDocument) -> some View {
@@ -178,15 +211,28 @@ struct ContentView: View {
                     .frame(width: 6, height: 6)
             }
         }
-        .tag(document)
+        .contentShape(Rectangle())
         .contextMenu {
             Button("Save") {
                 saveDocument(document)
             }
+            .disabled(document.fileURL == nil || !document.isModified)
+            
+            Button("Save As...") {
+                saveDocumentAs(document)
+            }
+            
+            Divider()
+            
+            Button("Show in Finder") {
+                showInFinder(document)
+            }
             .disabled(document.fileURL == nil)
             
-            Button("Delete", role: .destructive) {
-                deleteDocument(document)
+            Divider()
+            
+            Button("Close") {
+                closeDocument(document)
             }
         }
     }
@@ -194,9 +240,96 @@ struct ContentView: View {
     private var detailContent: some View {
         Group {
             if let document = selectedDocument {
-                CodeEditorView(document: document, triggerPrint: $triggerPrint)
+                VStack(spacing: 0) {
+                    // Tab bar
+                    if documents.count > 1 {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 0) {
+                                ForEach(documents) { doc in
+                                    TabLabel(
+                                        document: doc,
+                                        isSelected: selectedDocument?.id == doc.id,
+                                        onSelect: { selectedDocument = doc },
+                                        onClose: { closeDocument(doc) }
+                                    )
+                                }
+                                
+                                Spacer()
+                                
+                                // Split view button (requires SplitViewContainer.swift)
+                                if FeatureAccess.canUseSplitView && showSplitView {
+                                    Button(action: toggleSplitView) {
+                                        Image(systemName: "rectangle.split.2x1.slash")
+                                            .font(.system(size: 12))
+                                    }
+                                    .buttonStyle(.plain)
+                                    .padding(.horizontal, 8)
+                                    .help("Close Split View")
+                                }
+                            }
+                        }
+                        .frame(height: 32)
+                        .background(Color(nsColor: .controlBackgroundColor))
+                        
+                        Divider()
+                    }
+                    
+                    // Editor
+                    CodeEditorView(document: document, triggerPrint: $triggerPrint)
+                }
+                .overlay(
+                    isDropTargeted ?
+                        RoundedRectangle(cornerRadius: 0)
+                            .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 3, dash: [10, 5]))
+                            .padding(4)
+                        : nil
+                )
+                .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
+                    handleDrop(providers: providers)
+                }
             } else {
                 welcomeScreen
+            }
+        }
+    }
+    
+    private struct TabLabel: View {
+        let document: CodeDocument
+        let isSelected: Bool
+        let onSelect: () -> Void
+        let onClose: () -> Void
+        
+        var body: some View {
+            HStack(spacing: 4) {
+                Image(systemName: "doc.text")
+                    .font(.system(size: 10))
+                    .foregroundStyle(isSelected ? .primary : .secondary)
+                
+                Text(document.filename)
+                    .font(.system(size: 11))
+                    .lineLimit(1)
+                    .foregroundStyle(isSelected ? .primary : .secondary)
+                
+                if document.isModified {
+                    Circle()
+                        .fill(.orange)
+                        .frame(width: 6, height: 6)
+                }
+                
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Close")
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(isSelected ? Color(nsColor: .controlBackgroundColor).opacity(0.5) : Color.clear)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                onSelect()
             }
         }
     }
@@ -215,10 +348,32 @@ struct ContentView: View {
                 .font(.title3)
                 .foregroundStyle(.secondary)
             
+            if documents.isEmpty {
+                Text("Drop files here to open")
+                    .font(.callout)
+                    .foregroundStyle(.tertiary)
+                    .padding(.top, -8)
+            }
+            
             welcomeButtons
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(
+            isDropTargeted ? 
+                Color.accentColor.opacity(0.1) : 
+                Color.clear
+        )
+        .overlay(
+            isDropTargeted ?
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 2, dash: [10, 5]))
+                    .padding(20)
+                : nil
+        )
+        .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
+            handleDrop(providers: providers)
+        }
     }
     
     private var welcomeButtons: some View {
@@ -246,42 +401,34 @@ struct ContentView: View {
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
-        panel.allowedContentTypes = UTType.codeFiles
-        panel.message = "Select one or more code files to open"
+        panel.allowedContentTypes = [.text, .plainText, .data]
+        panel.allowsOtherFileTypes = true
+        panel.message = "Select one or more files to open"
         
         panel.begin { response in
             if response == .OK {
-                var lastOpenedDocument: CodeDocument?
-                var errors: [String] = []
-                
                 for url in panel.urls {
-                    do {
-                        let document = try CodeDocument.load(from: url)
-                        
-                        // Check if file is already open
-                        if !documents.contains(where: { $0.fileURL == url }) {
-                            documents.append(document)
-                            lastOpenedDocument = document
-                        } else {
-                            // Select the already open document
-                            lastOpenedDocument = documents.first(where: { $0.fileURL == url })
-                        }
-                    } catch {
-                        errors.append("\(url.lastPathComponent): \(error.localizedDescription)")
-                    }
-                }
-                
-                // Select the last successfully opened document
-                if let lastDocument = lastOpenedDocument {
-                    selectedDocument = lastDocument
-                }
-                
-                // Show errors if any occurred
-                if !errors.isEmpty {
-                    errorMessage = "Failed to open some files:\n" + errors.joined(separator: "\n")
-                    showErrorAlert = true
+                    openSpecificFile(url)
                 }
             }
+        }
+    }
+    
+    private func openSpecificFile(_ url: URL) {
+        do {
+            let document = try CodeDocument.load(from: url)
+            
+            // Check if file is already open
+            if !documents.contains(where: { $0.fileURL == url }) {
+                documents.append(document)
+                selectedDocument = document
+            } else {
+                // Select the already open document
+                selectedDocument = documents.first(where: { $0.fileURL == url })
+            }
+        } catch {
+            errorMessage = "\(url.lastPathComponent): \(error.localizedDescription)"
+            showErrorAlert = true
         }
     }
     
@@ -291,6 +438,58 @@ struct ContentView: View {
         } catch {
             errorMessage = "Failed to save file: \(error.localizedDescription)"
             showErrorAlert = true
+        }
+    }
+    
+    private func saveDocumentAs(_ document: CodeDocument) {
+        let savePanel = NSSavePanel()
+        savePanel.nameFieldStringValue = document.filename
+        savePanel.canCreateDirectories = true
+        savePanel.isExtensionHidden = false
+        
+        savePanel.begin { response in
+            if response == .OK, let url = savePanel.url {
+                document.fileURL = url
+                document.filename = url.lastPathComponent
+                saveDocument(document)
+            }
+        }
+    }
+    
+    private func showInFinder(_ document: CodeDocument) {
+        guard let fileURL = document.fileURL else { return }
+        NSWorkspace.shared.activateFileViewerSelecting([fileURL])
+    }
+    
+    private func closeDocument(_ document: CodeDocument) {
+        if document.isModified {
+            // Show alert for unsaved changes
+            let alert = NSAlert()
+            alert.messageText = "Do you want to save the changes to \"\(document.filename)\"?"
+            alert.informativeText = "Your changes will be lost if you don't save them."
+            alert.addButton(withTitle: "Save")
+            alert.addButton(withTitle: "Cancel")
+            alert.addButton(withTitle: "Don't Save")
+            alert.alertStyle = .warning
+            
+            let response = alert.runModal()
+            
+            switch response {
+            case .alertFirstButtonReturn: // Save
+                if document.fileURL != nil {
+                    saveDocument(document)
+                    deleteDocument(document)
+                } else {
+                    saveDocumentAs(document)
+                    deleteDocument(document)
+                }
+            case .alertThirdButtonReturn: // Don't Save
+                deleteDocument(document)
+            default: // Cancel
+                return
+            }
+        } else {
+            deleteDocument(document)
         }
     }
     
@@ -331,8 +530,61 @@ struct ContentView: View {
         DocumentPersistence.saveRecentFiles(savedDocuments)
     }
     
+    private func clearRecentFiles() {
+        DocumentPersistence.clearRecentFiles()
+        // Close all unsaved documents
+        let unsavedDocs = documents.filter { $0.fileURL == nil }
+        if !unsavedDocs.isEmpty {
+            documents = unsavedDocs
+            selectedDocument = unsavedDocs.first
+        } else {
+            documents = []
+            selectedDocument = nil
+        }
+    }
+    
+    private func toggleSplitView() {
+        if showSplitView {
+            showSplitView = false
+            splitViewDocument = nil
+        } else {
+            // Set split view to the next document after selected
+            if let currentIndex = documents.firstIndex(where: { $0.id == selectedDocument?.id }),
+               currentIndex + 1 < documents.count {
+                splitViewDocument = documents[currentIndex + 1]
+                showSplitView = true
+            } else if documents.count > 1 {
+                splitViewDocument = documents.first(where: { $0.id != selectedDocument?.id })
+                showSplitView = true
+            }
+        }
+    }
+    
     private func toggleSidebar() {
         NSApp.keyWindow?.firstResponder?.tryToPerform(#selector(NSSplitViewController.toggleSidebar(_:)), with: nil)
+    }
+    
+    // MARK: - Drag and Drop
+    
+    private func handleDrop(providers: [NSItemProvider]) -> Bool {
+        for provider in providers {
+            // Load the file URL synchronously
+            provider.loadItem(forTypeIdentifier: "public.file-url", options: nil) { (urlData, error) in
+                DispatchQueue.main.async {
+                    if let urlData = urlData as? Data,
+                       let url = URL(dataRepresentation: urlData, relativeTo: nil) {
+                        
+                        // Ensure it's a file URL
+                        guard url.isFileURL else { return }
+                        
+                        // Open any file - will default to plain text if extension not recognized
+                        self.openSpecificFile(url)
+                    }
+                }
+            }
+        }
+        
+        return true
     }
 }
 
@@ -365,6 +617,7 @@ struct NewFileSheet: View {
     @Binding var language: CodeLanguage
     let onCreate: () -> Void
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var store = StoreManager.shared
     
     var body: some View {
         VStack(spacing: 20) {
@@ -377,8 +630,16 @@ struct NewFileSheet: View {
                     .textFieldStyle(.roundedBorder)
                 
                 Picker("Language", selection: $language) {
-                    ForEach(CodeLanguage.allCases) { lang in
-                        Text(lang.rawValue).tag(lang)
+                    ForEach(CodeLanguage.sortedLanguages(hasPremium: store.hasPremiumFeatures)) { lang in
+                        HStack {
+                            Text(lang.rawValue)
+                            if !FeatureAccess.canUseLanguage(lang) {
+                                Image(systemName: "lock.fill")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .tag(lang)
                     }
                 }
                 .pickerStyle(.menu)
@@ -411,8 +672,13 @@ struct NotificationHandlers: ViewModifier {
     @Binding var triggerPrint: Bool
     @Binding var showHelpWindow: Bool
     @Binding var showSettingsWindow: Bool
+    @Binding var showMultiFileSearch: Bool
+    @Binding var showSplitView: Bool
+    @Binding var showFeedback: Bool
     let onOpenFile: () -> Void
-    let onSaveDocument: () -> Void
+    let onClearRecentFiles: () -> Void
+    let onOpenSpecificFile: (URL) -> Void
+    let onToggleSplitView: () -> Void
     
     func body(content: Content) -> some View {
         content
@@ -421,9 +687,6 @@ struct NotificationHandlers: ViewModifier {
             }
             .onReceive(NotificationCenter.default.publisher(for: .openFile)) { _ in
                 onOpenFile()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .saveFile)) { _ in
-                onSaveDocument()
             }
             .onReceive(NotificationCenter.default.publisher(for: .printFile)) { _ in
                 triggerPrint.toggle()
@@ -434,6 +697,78 @@ struct NotificationHandlers: ViewModifier {
             .onReceive(NotificationCenter.default.publisher(for: .showSettings)) { _ in
                 showSettingsWindow = true
             }
+            .onReceive(NotificationCenter.default.publisher(for: .clearRecentFiles)) { _ in
+                onClearRecentFiles()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .openSpecificFile)) { notification in
+                if let userInfo = notification.userInfo,
+                   let url = userInfo["url"] as? URL {
+                    onOpenSpecificFile(url)
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .showMultiFileSearch)) { _ in
+                showMultiFileSearch = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .toggleSplitView)) { _ in
+                onToggleSplitView()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .showFeedback)) { _ in
+                showFeedback = true
+            }
+    }
+}
+
+struct WelcomeSheet: View {
+    @Binding var isPresented: Bool
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "chevron.left.forwardslash.chevron.right")
+                .font(.system(size: 60))
+                .foregroundStyle(.blue)
+            
+            Text("Welcome to Code Editor")
+                .font(.title)
+                .fontWeight(.bold)
+            
+            VStack(alignment: .leading, spacing: 12) {
+                QuickTip(icon: "gearshape", text: "Access Settings via Code Editor menu → Settings... (⌘,)")
+                QuickTip(icon: "folder", text: "Recent files auto-load on launch")
+                QuickTip(icon: "xmark.circle", text: "Clear recent files via File → Clear Recent Files")
+                QuickTip(icon: "tablecells", text: "Click tabs at top to switch between files")
+                QuickTip(icon: "plus.magnifyingglass", text: "Zoom: ⌘+ / ⌘- / ⌘0")
+                QuickTip(icon: "line.3.horizontal", text: "Go to Line: ⌘L")
+                QuickTip(icon: "magnifyingglass", text: "Find: ⌘F | Replace: ⌥⌘H")
+            }
+            .padding()
+            .background(Color.secondary.opacity(0.1))
+            .cornerRadius(12)
+            
+            Button("Get Started") {
+                UserDefaults.standard.set(true, forKey: "hasLaunchedBefore")
+                isPresented = false
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+        }
+        .padding(32)
+        .frame(width: 500)
+    }
+}
+
+struct QuickTip: View {
+    let icon: String
+    let text: String
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 16))
+                .foregroundStyle(.blue)
+                .frame(width: 24)
+            Text(text)
+                .font(.callout)
+        }
     }
 }
 

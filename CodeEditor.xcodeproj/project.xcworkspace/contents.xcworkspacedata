@@ -5,6 +5,33 @@
       location = "self:">
    </FileRef>
    <FileRef
-      location = "group:HelpView.swift">
+      location = "group:EditorSettings.swift">
+   </FileRef>
+   <FileRef
+      location = "group:StatusBarView.swift">
+   </FileRef>
+   <FileRef
+      location = "group:GoToLineView.swift">
+   </FileRef>
+   <FileRef
+      location = "group:ThemeColors.swift">
+   </FileRef>
+   <FileRef
+      location = "group:FEATURES_IMPLEMENTED.md">
+   </FileRef>
+   <FileRef
+      location = "group:SplitViewContainer.swift">
+   </FileRef>
+   <FileRef
+      location = "group:SnippetsManager.swift">
+   </FileRef>
+   <FileRef
+      location = "group:SnippetsView.swift">
+   </FileRef>
+   <FileRef
+      location = "group:MultiFileSearchView.swift">
+   </FileRef>
+   <FileRef
+      location = "group:NEW_FEATURES_PHASE2.md">
    </FileRef>
 </Workspace>

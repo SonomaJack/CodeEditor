@@ -31,9 +31,13 @@ class PrintCoordinator {
         // Enable scaling to fit content on page
         printInfo.scalingFactor = 1.0
         
-        // Calculate printable area
+        // Calculate printable area with our custom margins
         let paperSize = printInfo.paperSize
-        let printableWidth = paperSize.width - printInfo.leftMargin - printInfo.rightMargin
+        let customLeftMargin: CGFloat = 36
+        let customRightMargin: CGFloat = 36
+        let customTopMargin: CGFloat = 54
+        let customBottomMargin: CGFloat = 54
+        let printableWidth = paperSize.width - customLeftMargin - customRightMargin
         
         // Apply syntax highlighting
         let highlightedString = SyntaxHighlighter.highlight(code: code, language: language)
@@ -162,7 +166,7 @@ class PrintCoordinator {
         // Calculate how many lines we have
         let lineCount = codeWithLineNumbers.components(separatedBy: .newlines).count
         let paperHeight = paperSize.height
-        let printableHeight = paperHeight - printInfo.topMargin - printInfo.bottomMargin
+        let printableHeight = paperHeight - customTopMargin - customBottomMargin
         
         // Try to calculate if we need to scale down
         let testFont = NSFont.monospacedSystemFont(ofSize: initialFontSize, weight: .regular)

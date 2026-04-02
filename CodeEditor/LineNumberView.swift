@@ -6,29 +6,51 @@
 //
 
 import SwiftUI
+import AppKit
 
-struct LineNumberView: View {
+struct LineNumberView: NSViewRepresentable {
     let text: String
+    let fontSize: CGFloat
     
-    private var lineCount: Int {
-        max(1, text.split(separator: "\n", omittingEmptySubsequences: false).count)
+    func makeNSView(context: Context) -> NSScrollView {
+        let scrollView = NSScrollView()
+        let textView = NSTextView()
+        
+        scrollView.documentView = textView
+        scrollView.hasVerticalScroller = false
+        scrollView.hasHorizontalScroller = false
+        scrollView.drawsBackground = true
+        scrollView.backgroundColor = NSColor.controlBackgroundColor.withAlphaComponent(0.5)
+        
+        textView.isEditable = false
+        textView.isSelectable = false
+        textView.backgroundColor = .clear
+        textView.textContainerInset = NSSize(width: 0, height: 0)
+        textView.textContainer?.lineFragmentPadding = 0
+        textView.alignment = .right
+        textView.font = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
+        textView.textColor = NSColor.secondaryLabelColor
+        
+        updateLineNumbers(textView: textView)
+        
+        return scrollView
     }
     
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .trailing, spacing: 0) {
-                ForEach(1...lineCount, id: \.self) { lineNumber in
-                    Text("\(lineNumber)")
-                        .font(.system(size: 13, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .frame(height: 16)
-                        .padding(.trailing, 8)
-                }
-            }
-            .padding(.top, 4)
+    func updateNSView(_ scrollView: NSScrollView, context: Context) {
+        guard let textView = scrollView.documentView as? NSTextView else { return }
+        
+        // Update font size if changed
+        if textView.font?.pointSize != fontSize {
+            textView.font = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
         }
-        .scrollDisabled(true)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
+        
+        updateLineNumbers(textView: textView)
+    }
+    
+    private func updateLineNumbers(textView: NSTextView) {
+        let lineCount = max(1, text.split(separator: "\n", omittingEmptySubsequences: false).count)
+        let numbers = (1...lineCount).map { "\($0)" }.joined(separator: "\n")
+        textView.string = numbers
     }
 }
 
@@ -41,6 +63,6 @@ struct LineNumberView: View {
             Text("Hello, World!")
         }
     }
-    """)
+    """, fontSize: 13)
     .frame(width: 40, height: 300)
 }
