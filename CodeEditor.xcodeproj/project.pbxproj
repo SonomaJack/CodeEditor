@@ -9,12 +9,12 @@
 /* Begin PBXBuildFile section */
 		AA8CB2752F76AB5A00D7FAC8 /* DocumentPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA8CB2742F76AB5A00D7FAC8 /* DocumentPersistence.swift */; };
 		AAB939F72F7FE3D5002BE08B /* TEST_PLAN.md in Resources */ = {isa = PBXBuildFile; fileRef = AAB939F62F7FE3D5002BE08B /* TEST_PLAN.md */; };
-		AAB939F92F7FE451002BE08B /* CodeEditorTestsFindReplaceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAB939F82F7FE451002BE08B /* CodeEditorTestsFindReplaceTests.swift */; };
-		AAB939FB2F7FE463002BE08B /* CodeEditorTestsCodeDocumentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAB939FA2F7FE463002BE08B /* CodeEditorTestsCodeDocumentTests.swift */; };
-		AAB939FD2F7FE48D002BE08B /* CodeEditorUITestsCodeEditorUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAB939FC2F7FE48D002BE08B /* CodeEditorUITestsCodeEditorUITests.swift */; };
 		AAB939FF2F7FE49A002BE08B /* .githubISSUE_TEMPLATEbug_report.md in Resources */ = {isa = PBXBuildFile; fileRef = AAB939FE2F7FE49A002BE08B /* .githubISSUE_TEMPLATEbug_report.md */; };
 		AAB93A012F7FE4A6002BE08B /* .githubISSUE_TEMPLATEfeature_request.md in Resources */ = {isa = PBXBuildFile; fileRef = AAB93A002F7FE4A6002BE08B /* .githubISSUE_TEMPLATEfeature_request.md */; };
 		AAB93A032F7FE4DC002BE08B /* COMMIT_MESSAGE.md in Resources */ = {isa = PBXBuildFile; fileRef = AAB93A022F7FE4DC002BE08B /* COMMIT_MESSAGE.md */; };
+		AAB93A052F7FE666002BE08B /* TestsCodeDocumentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAB93A042F7FE666002BE08B /* TestsCodeDocumentTests.swift */; };
+		AAB93A072F7FE680002BE08B /* TestsFindReplaceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAB93A062F7FE680002BE08B /* TestsFindReplaceTests.swift */; };
+		AAB93A092F7FE69B002BE08B /* TEST_SETUP.md in Resources */ = {isa = PBXBuildFile; fileRef = AAB93A082F7FE69B002BE08B /* TEST_SETUP.md */; };
 		AADAB9932F7C206A00F06E0A /* Products.storekit in Resources */ = {isa = PBXBuildFile; fileRef = AADAB9922F7C206A00F06E0A /* Products.storekit */; };
 /* End PBXBuildFile section */
 
@@ -38,12 +38,12 @@
 /* Begin PBXFileReference section */
 		AA8CB2742F76AB5A00D7FAC8 /* DocumentPersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentPersistence.swift; sourceTree = "<group>"; };
 		AAB939F62F7FE3D5002BE08B /* TEST_PLAN.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = TEST_PLAN.md; sourceTree = "<group>"; };
-		AAB939F82F7FE451002BE08B /* CodeEditorTestsFindReplaceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeEditorTestsFindReplaceTests.swift; sourceTree = "<group>"; };
-		AAB939FA2F7FE463002BE08B /* CodeEditorTestsCodeDocumentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeEditorTestsCodeDocumentTests.swift; sourceTree = "<group>"; };
-		AAB939FC2F7FE48D002BE08B /* CodeEditorUITestsCodeEditorUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeEditorUITestsCodeEditorUITests.swift; sourceTree = "<group>"; };
 		AAB939FE2F7FE49A002BE08B /* .githubISSUE_TEMPLATEbug_report.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = .githubISSUE_TEMPLATEbug_report.md; sourceTree = "<group>"; };
 		AAB93A002F7FE4A6002BE08B /* .githubISSUE_TEMPLATEfeature_request.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = .githubISSUE_TEMPLATEfeature_request.md; sourceTree = "<group>"; };
 		AAB93A022F7FE4DC002BE08B /* COMMIT_MESSAGE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = COMMIT_MESSAGE.md; sourceTree = "<group>"; };
+		AAB93A042F7FE666002BE08B /* TestsCodeDocumentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestsCodeDocumentTests.swift; sourceTree = "<group>"; };
+		AAB93A062F7FE680002BE08B /* TestsFindReplaceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestsFindReplaceTests.swift; sourceTree = "<group>"; };
+		AAB93A082F7FE69B002BE08B /* TEST_SETUP.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = TEST_SETUP.md; sourceTree = "<group>"; };
 		AABCB7F12F75BB970060B234 /* CodeEditor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CodeEditor.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AABCB7FE2F75BB980060B234 /* CodeEditorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CodeEditorTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AABCB8082F75BB980060B234 /* CodeEditorUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CodeEditorUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -103,12 +103,12 @@
 				AABCB7F22F75BB970060B234 /* Products */,
 				AA8CB2742F76AB5A00D7FAC8 /* DocumentPersistence.swift */,
 				AAB939F62F7FE3D5002BE08B /* TEST_PLAN.md */,
-				AAB939F82F7FE451002BE08B /* CodeEditorTestsFindReplaceTests.swift */,
-				AAB939FA2F7FE463002BE08B /* CodeEditorTestsCodeDocumentTests.swift */,
-				AAB939FC2F7FE48D002BE08B /* CodeEditorUITestsCodeEditorUITests.swift */,
 				AAB939FE2F7FE49A002BE08B /* .githubISSUE_TEMPLATEbug_report.md */,
 				AAB93A002F7FE4A6002BE08B /* .githubISSUE_TEMPLATEfeature_request.md */,
 				AAB93A022F7FE4DC002BE08B /* COMMIT_MESSAGE.md */,
+				AAB93A042F7FE666002BE08B /* TestsCodeDocumentTests.swift */,
+				AAB93A062F7FE680002BE08B /* TestsFindReplaceTests.swift */,
+				AAB93A082F7FE69B002BE08B /* TEST_SETUP.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -247,6 +247,7 @@
 				AAB939FF2F7FE49A002BE08B /* .githubISSUE_TEMPLATEbug_report.md in Resources */,
 				AAB93A032F7FE4DC002BE08B /* COMMIT_MESSAGE.md in Resources */,
 				AADAB9932F7C206A00F06E0A /* Products.storekit in Resources */,
+				AAB93A092F7FE69B002BE08B /* TEST_SETUP.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -272,9 +273,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				AA8CB2752F76AB5A00D7FAC8 /* DocumentPersistence.swift in Sources */,
-				AAB939FB2F7FE463002BE08B /* CodeEditorTestsCodeDocumentTests.swift in Sources */,
-				AAB939FD2F7FE48D002BE08B /* CodeEditorUITestsCodeEditorUITests.swift in Sources */,
-				AAB939F92F7FE451002BE08B /* CodeEditorTestsFindReplaceTests.swift in Sources */,
+				AAB93A052F7FE666002BE08B /* TestsCodeDocumentTests.swift in Sources */,
+				AAB93A072F7FE680002BE08B /* TestsFindReplaceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
