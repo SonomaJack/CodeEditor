@@ -1,0 +1,50 @@
+feat: improve premium UX and fix purchase flow
+
+## Summary
+Improved premium feature user experience with graceful degradation
+for file opening and fixed missing purchase button in upgrade screen.
+
+## Key Changes
+
+### Premium File Opening (Graceful Degradation)
+- Premium language files now open as Plain Text instead of being blocked
+- Non-blocking upgrade prompt allows continued editing
+- Better UX: users can access their files immediately
+
+### Fixed Missing Purchase Button
+- Added fallback purchase button in PremiumFeatureView
+- Auto-loads StoreKit products when sheet appears
+- Always shows purchase/restore/dismiss options
+
+### Settings & Help Updates
+- Fixed feedback button navigation (dismiss → open)
+- Updated help documentation with accurate free/premium split
+- Disabled debug premium override
+
+### Language Detection Fixes
+- Prioritize programming languages before documentation formats
+- Prevents Swift files being misidentified as Markdown
+- Improved detection accuracy
+
+### Premium Feature Updates
+- Free languages: Plain Text, Markdown, JSON, XML, CSV
+- Premium languages: 21 programming languages (Swift, Python, JS, etc.)
+- Premium features: Find & Replace, Code Completion, Printing, etc.
+
+## Files Modified
+- FeatureAccess.swift (disabled override, updated free languages)
+- ContentView.swift (graceful file opening)
+- CodeDocument.swift (improved language detection)
+- PremiumFeatureView.swift (added fallback purchase button)
+- SettingsView.swift (fixed feedback flow)
+- HelpView.swift (updated documentation)
+- README_IAP.md (updated feature lists)
+
+## Breaking Changes
+- Debug builds now require actual purchase (override disabled)
+- Swift moved from free to premium tier
+
+## Testing
+Test with: overridePremiumForTesting = false (production mode)
+
+⚠️ Remember to set overridePremiumForTesting = false before release!
