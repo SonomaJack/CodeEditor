@@ -62,26 +62,59 @@ struct CodeEditorView: View {
                 }
                 .help(document.showLineNumbers ? "Hide line numbers" : "Show line numbers")
                 
-                Picker("Language", selection: $document.language) {
-                    ForEach(CodeLanguage.sortedLanguages(hasPremium: store.hasPremiumFeatures)) { language in
-                        HStack {
-                            Text(language.rawValue)
-                            if !FeatureAccess.canUseLanguage(language) {
-                                Image(systemName: "lock.fill")
+                HStack(spacing: 4) {
+                    Picker("Language", selection: $document.language) {
+                        ForEach(CodeLanguage.sortedLanguages(hasPremium: store.hasPremiumFeatures)) { language in
+                            HStack {
+                                Text(language.rawValue)
+                                if !FeatureAccess.canUseLanguage(language) {
+                                    Image(systemName: "lock.fill")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .tag(language)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .frame(width: 180)
+                    .onChange(of: document.language) { oldValue, newValue in
+                        if !FeatureAccess.canUseLanguage(newValue) {
+                            document.language = oldValue
+                            premiumFeatureMessage = FeatureAccess.featureDescription(for: .language(newValue))
+                            showPremiumGate = true
+                        } else {
+                            // Disable auto-detect when user manually changes language
+                            document.shouldAutoDetectLanguage = false
+                        }
+                    }
+                    
+                    // Auto-detect indicator
+                    if document.shouldAutoDetectLanguage {
+                        Button(action: {
+                            document.shouldAutoDetectLanguage = false
+                        }) {
+                            HStack(spacing: 2) {
+                                Image(systemName: "wand.and.stars")
+                                    .font(.caption)
+                                    .foregroundStyle(.blue)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .help("Auto-detection enabled. Click to disable.")
+                    } else {
+                        Button(action: {
+                            document.shouldAutoDetectLanguage = true
+                            document.updateLanguageFromContent()
+                        }) {
+                            HStack(spacing: 2) {
+                                Image(systemName: "wand.and.stars.inverse")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
                         }
-                        .tag(language)
-                    }
-                }
-                .pickerStyle(.menu)
-                .frame(width: 180)
-                .onChange(of: document.language) { oldValue, newValue in
-                    if !FeatureAccess.canUseLanguage(newValue) {
-                        document.language = oldValue
-                        premiumFeatureMessage = FeatureAccess.featureDescription(for: .language(newValue))
-                        showPremiumGate = true
+                        .buttonStyle(.plain)
+                        .help("Auto-detection disabled. Click to enable.")
                     }
                 }
                 
@@ -218,6 +251,12 @@ struct CodeEditorView: View {
                             .font(.system(size: 10))
                         Text(document.language.rawValue)
                             .font(.system(size: 11))
+                        if document.shouldAutoDetectLanguage {
+                            Image(systemName: "wand.and.stars")
+                                .font(.system(size: 9))
+                                .foregroundStyle(.blue)
+                                .help("Auto-detecting language")
+                        }
                     }
                     
                     Divider()
@@ -331,9 +370,6 @@ struct CodeEditorView: View {
             showReplace = true
             showFind = false
         }
-        .onReceive(NotificationCenter.default.publisher(for: .showHelpWindow)) { _ in
-            showHelp()
-        }
         .onReceive(NotificationCenter.default.publisher(for: .saveFile)) { _ in
             saveDocument()
         }
@@ -398,14 +434,6 @@ struct CodeEditorView: View {
     
     private func printDocument() {
         PrintCoordinator.printDocument(document, from: NSApp.keyWindow)
-    }
-    
-    private func showHelp() {
-        if let url = URL(string: "codeeditor://help") {
-            NSWorkspace.shared.open(url)
-        }
-        // Alternative: Show help window
-        NotificationCenter.default.post(name: .showHelpWindow, object: nil)
     }
     
     private func updateSuggestions() {

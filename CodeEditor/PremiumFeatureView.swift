@@ -36,7 +36,7 @@ struct PremiumFeatureView: View {
                     .padding(.vertical)
                 
                 VStack(alignment: .leading, spacing: 12) {
-                    PremiumFeatureRow(icon: "paintpalette", text: "All programming languages")
+                    PremiumFeatureRow(icon: "paintpalette", text: "All 21 programming languages")
                     PremiumFeatureRow(icon: "arrow.triangle.2.circlepath", text: "Find and Replace")
                     PremiumFeatureRow(icon: "tablecells", text: "Column-restricted search")
                     PremiumFeatureRow(icon: "printer", text: "Print with headers & footers")
@@ -46,16 +46,20 @@ struct PremiumFeatureView: View {
                     PremiumFeatureRow(icon: "curlybraces", text: "Code snippets & templates")
                     PremiumFeatureRow(icon: "arrow.triangle.branch", text: "Git integration")
                     PremiumFeatureRow(icon: "paintbrush.pointed", text: "Premium color themes")
+                    PremiumFeatureRow(icon: "doc.text.magnifyingglass", text: "Multi-file search")
+                
                 }
                 .padding()
                 .background(Color.secondary.opacity(0.1))
                 .cornerRadius(12)
                 
-                if store.isLoading {
-                    ProgressView()
-                        .padding()
-                } else if let product = store.products.first(where: { $0.id == ProductID.premiumFeatures.rawValue }) {
-                    VStack(spacing: 12) {
+                // Purchase section
+                VStack(spacing: 12) {
+                    if store.isLoading {
+                        ProgressView("Loading pricing...")
+                            .padding()
+                    } else if let product = store.products.first(where: { $0.id == ProductID.premiumFeatures.rawValue }) {
+                        // Show product with price
                         Button(action: {
                             Task {
                                 do {
@@ -78,18 +82,46 @@ struct PremiumFeatureView: View {
                             .cornerRadius(10)
                         }
                         .buttonStyle(.plain)
-                        
-                        Button("Restore Purchases") {
+                    } else {
+                        // Fallback button if products didn't load
+                        Button(action: {
                             Task {
-                                await store.restorePurchases()
-                                if store.hasPremiumFeatures {
+                                // Try to reload products
+                                await store.loadProducts()
+                                
+                                // If still no products, try to purchase anyway
+                                if let product = store.products.first(where: { $0.id == ProductID.premiumFeatures.rawValue }) {
+                                    _ = try? await store.purchase(product)
                                     dismiss()
                                 }
                             }
+                        }) {
+                            HStack {
+                                Text("Unlock Premium")
+                                Spacer()
+                                Text("$4.99")
+                            }
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.accentColor)
+                            .foregroundStyle(.white)
+                            .cornerRadius(10)
                         }
-                        .foregroundStyle(.secondary)
+                        .buttonStyle(.plain)
                     }
+                    
+                    // Restore purchases button (always show)
+                    Button("Restore Purchases") {
+                        Task {
+                            await store.restorePurchases()
+                            if store.hasPremiumFeatures {
+                                dismiss()
+                            }
+                        }
+                    }
+                    .foregroundStyle(.secondary)
                 }
+                .padding(.vertical, 8)
                 
                 if let errorMessage = store.errorMessage {
                     Text(errorMessage)
@@ -107,6 +139,12 @@ struct PremiumFeatureView: View {
             .padding()
         }
         .frame(width: 550, height: 700)
+        .task {
+            // Ensure products are loaded when view appears
+            if store.products.isEmpty {
+                await store.loadProducts()
+            }
+        }
     }
 }
 

@@ -9,6 +9,7 @@ import SwiftUI
 import StoreKit
 
 struct SettingsView: View {
+    @Environment(\.dismiss) private var dismiss
     @StateObject private var store = StoreManager.shared
     @State private var showPremiumSheet = false
     @State private var selectedTab: SettingsTab = .general
@@ -283,7 +284,11 @@ struct SettingsView: View {
                 Divider()
                 
                 Button(action: {
-                    NotificationCenter.default.post(name: .showFeedback, object: nil)
+                    // Dismiss settings first, then show feedback after a short delay
+                    dismiss()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        NotificationCenter.default.post(name: .showFeedback, object: nil)
+                    }
                 }) {
                     HStack {
                         Image(systemName: "envelope")

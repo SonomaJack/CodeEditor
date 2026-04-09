@@ -16,7 +16,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "AABCB7F02F75BB970060B234"
-               BuildableName = "CodeEditor.app"
+               BuildableName = "Clarity Code Edit.app"
                BlueprintName = "CodeEditor"
                ReferencedContainer = "container:CodeEditor.xcodeproj">
             </BuildableReference>
@@ -69,7 +69,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "AABCB7F02F75BB970060B234"
-            BuildableName = "CodeEditor.app"
+            BuildableName = "Clarity Code Edit.app"
             BlueprintName = "CodeEditor"
             ReferencedContainer = "container:CodeEditor.xcodeproj">
          </BuildableReference>
@@ -89,7 +89,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "AABCB7F02F75BB970060B234"
-            BuildableName = "CodeEditor.app"
+            BuildableName = "Clarity Code Edit.app"
             BlueprintName = "CodeEditor"
             ReferencedContainer = "container:CodeEditor.xcodeproj">
          </BuildableReference>

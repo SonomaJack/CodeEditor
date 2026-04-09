@@ -458,10 +458,11 @@ struct HelpView: View {
                 • Java, Apex (Salesforce)
                 • C++, C, C#
                 • Go, Rust, Ruby, PHP
-                • SQL, HTML, CSS
-                • YAML
+                • SQL, HTML, CSS, YAML
                 
                 Each language has custom syntax highlighting optimized for readability.
+                
+                **Upgrade to Premium** to unlock all 21 programming languages!
                 """
             )
             

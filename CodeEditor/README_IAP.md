@@ -6,18 +6,25 @@ This branch contains the App Store version with In-App Purchase (IAP) support.
 
 ### Free Features
 - ✅ Basic code editing
-- ✅ Swift syntax highlighting
+- ✅ Plain Text, Markdown, JSON, XML, CSV
 - ✅ Find (search only)
 - ✅ Line numbers toggle
 - ✅ Save and Open files
 - ✅ Basic file management
+- ✅ Syntax highlighting for free languages
 
 ### Premium Features (One-time purchase: $4.99)
-- 🔒 All programming languages (Python, JavaScript, HTML, CSS, JSON, etc.)
-- 🔒 Find & Replace
+- 🔒 All 21 programming languages (Swift, Python, JavaScript, TypeScript, Java, Apex, C++, C, C#, Go, Rust, Ruby, PHP, SQL, HTML, CSS, YAML)
+- 🔒 Find & Replace with regex support
+- 🔒 Column-restricted search
 - 🔒 Print with headers and footers
 - 🔒 Code completion suggestions
-- 🔒 Advanced syntax highlighting
+- 🔒 Split view editing
+- 🔒 Code snippets & templates
+- 🔒 Multi-file search
+- 🔒 Git integration
+- 🔒 Premium color themes
+- 🔒 Advanced customization
 
 ## Setup Instructions
 

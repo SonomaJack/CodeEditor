@@ -12,7 +12,7 @@ struct FeatureAccess {
     
     // MARK: - Development Testing
     /// Set to true to test premium features without purchase (DISABLE IN PRODUCTION)
-    static let overridePremiumForTesting = true
+    static let overridePremiumForTesting = false
     
     /// Check if premium features are unlocked
     static var hasPremium: Bool {
@@ -25,7 +25,14 @@ struct FeatureAccess {
     }
     
     /// Languages available in free version
-    static let freeLanguages: Set<CodeLanguage> = [.swift, .plaintext]
+    static let freeLanguages: Set<CodeLanguage> = [
+        .plaintext,
+        .markdown,
+        .json,
+        .xml,
+        .csv,
+        .unknown
+    ]
     
     /// Check if a language is available
     static func canUseLanguage(_ language: CodeLanguage) -> Bool {

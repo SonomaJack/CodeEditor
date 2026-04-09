@@ -84,7 +84,7 @@ class CodeCompletionEngine {
             return getHTMLSuggestions()
         case .css:
             return getCSSSuggestions()
-        case .markdown, .json, .yaml, .plaintext:
+        case .markdown, .json, .yaml, .csv, .plaintext, .unknown:
             return [] // No code completion for markup/data formats
         }
     }

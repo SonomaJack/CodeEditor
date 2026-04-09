@@ -11,12 +11,12 @@ import Combine
 
 /// Product identifiers for in-app purchases
 enum ProductID: String, CaseIterable {
-    case premiumFeatures = "com.codeeditor.premium"
+    case premiumFeatures = "com.claritycodedit.premium"
     
     var displayName: String {
         switch self {
         case .premiumFeatures:
-            return "Premium Features"
+            return "Clarity Code Edit - Premium Features"
         }
     }
     

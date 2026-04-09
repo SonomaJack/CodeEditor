@@ -42,8 +42,8 @@ struct SyntaxHighlighter {
             highlightMarkdown(&attributed, code: code)
         case .json, .yaml:
             highlightJSON(&attributed, code: code)
-        case .plaintext:
-            break
+        case .csv, .plaintext, .unknown:
+            break // No syntax highlighting for plain text/data formats
         }
         
         return attributed

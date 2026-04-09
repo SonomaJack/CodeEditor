@@ -9,6 +9,8 @@ import SwiftUI
 
 @main
 struct CodeEditorApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    
     init() {
         // Disable automatic window tabbing
         NSWindow.allowsAutomaticWindowTabbing = false
@@ -17,8 +19,13 @@ struct CodeEditorApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onOpenURL { url in
+                    handleURL(url)
+                }
         }
         .windowStyle(.hiddenTitleBar)
+        .defaultSize(width: 1200, height: 800)
+        .handlesExternalEvents(matching: Set(arrayLiteral: "main"))
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("New File...") {
@@ -146,7 +153,7 @@ struct CodeEditorApp: App {
             
             // Help Menu
             CommandGroup(replacing: .help) {
-                Button("Code Editor Help") {
+                Button("Clarity Code Edit Help") {
                     NotificationCenter.default.post(name: .showHelpWindow, object: nil)
                 }
                 .keyboardShortcut("/", modifiers: [.command])
@@ -167,6 +174,25 @@ struct CodeEditorApp: App {
                 
                 Divider()
             }
+        }
+    }
+    
+    // MARK: - URL Handling
+    private func handleURL(_ url: URL) {
+        guard url.scheme == "codeeditor" else { return }
+        
+        switch url.host {
+        case "help":
+            // Open help window
+            NotificationCenter.default.post(name: .showHelpWindow, object: nil)
+        case "settings":
+            // Open settings
+            NotificationCenter.default.post(name: .showSettings, object: nil)
+        case "feedback":
+            // Open feedback
+            NotificationCenter.default.post(name: .showFeedback, object: nil)
+        default:
+            print("⚠️ Unknown URL: \(url)")
         }
     }
 }
@@ -195,4 +221,81 @@ extension Notification.Name {
     static let showSnippets = Notification.Name("showSnippets")
     static let saveFileAs = Notification.Name("saveFileAs")
     static let showFeedback = Notification.Name("showFeedback")
+}
+
+// MARK: - App Delegate for File Handling
+class AppDelegate: NSObject, NSApplicationDelegate {
+    private var hasHandledInitialOpen = false
+    
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag {
+            // Open a new window if there are no visible windows
+            if let window = NSApp.windows.first {
+                window.makeKeyAndOrderFront(self)
+            }
+        }
+        return true
+    }
+    
+    func application(_ application: NSApplication, open urls: [URL]) {
+        // Handle files dropped on the Dock icon or opened via "Open With"
+        print("📂 Attempting to open \(urls.count) file(s)")
+        
+        // Give the app a moment to finish launching if needed
+        DispatchQueue.main.async { [weak self] in
+            self?.openFilesInExistingWindow(urls)
+        }
+    }
+    
+    private func openFilesInExistingWindow(_ urls: [URL]) {
+        // Find the most appropriate window
+        var targetWindow: NSWindow?
+        
+        // Priority 1: Key window (frontmost)
+        if let keyWindow = NSApp.keyWindow, keyWindow.isVisible {
+            targetWindow = keyWindow
+            print("📂 Using key window")
+        }
+        // Priority 2: Any visible window
+        else if let visibleWindow = NSApp.windows.first(where: { $0.isVisible && !$0.title.isEmpty }) {
+            targetWindow = visibleWindow
+            print("📂 Using visible window")
+        }
+        // Priority 3: Any window at all
+        else if let anyWindow = NSApp.windows.first(where: { !$0.title.isEmpty }) {
+            targetWindow = anyWindow
+            print("📂 Using any available window")
+        }
+        
+        // Bring window to front if we found one
+        if let window = targetWindow {
+            window.makeKeyAndOrderFront(self)
+            NSApp.activate(ignoringOtherApps: true)
+        } else {
+            print("📂 No window found - one will be created")
+        }
+        
+        // Small delay to ensure window is ready
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            // Post notifications to open each file
+            for url in urls {
+                print("📂 Opening file: \(url.lastPathComponent)")
+                NotificationCenter.default.post(
+                    name: .openSpecificFile,
+                    object: nil,
+                    userInfo: ["url": url]
+                )
+            }
+        }
+    }
+    
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // Register for file open events
+        NSApp.servicesProvider = self
+        hasHandledInitialOpen = true
+    }
+    
+    func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
+        return true
+    }
 }

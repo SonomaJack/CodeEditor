@@ -14,6 +14,10 @@ struct FeedbackView: View {
     @State private var userEmail = ""
     @State private var includeSystemInfo = true
     @State private var showCopiedAlert = false
+    @State private var isSending = false
+    @State private var showSuccessAlert = false
+    @State private var showErrorAlert = false
+    @State private var errorMessage = ""
     
     enum FeedbackType: String, CaseIterable {
         case bug = "Bug Report"
@@ -103,19 +107,28 @@ struct FeedbackView: View {
                     dismiss()
                 }
                 .keyboardShortcut(.cancelAction)
+                .disabled(isSending)
                 
                 Spacer()
                 
                 Button(action: copyToClipboard) {
                     Label("Copy to Clipboard", systemImage: "doc.on.clipboard")
                 }
-                .disabled(feedbackText.isEmpty)
-                .help("Copy feedback to clipboard, then paste into email")
+                .disabled(feedbackText.isEmpty || isSending)
+                .help("Copy feedback to clipboard")
                 
-                Button(action: sendFeedbackViaEmail) {
-                    Label("Open Email", systemImage: "envelope")
+                Button(action: sendFeedback) {
+                    if isSending {
+                        HStack {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                            Text("Sending...")
+                        }
+                    } else {
+                        Label("Send Feedback", systemImage: "paperplane")
+                    }
                 }
-                .disabled(feedbackText.isEmpty)
+                .disabled(feedbackText.isEmpty || isSending)
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)
             }
@@ -124,6 +137,20 @@ struct FeedbackView: View {
                 Text("✓ Feedback copied to clipboard!")
                     .font(.caption)
                     .foregroundStyle(.green)
+                    .transition(.opacity)
+            }
+            
+            if showSuccessAlert {
+                Text("✓ Feedback sent successfully! Thank you!")
+                    .font(.caption)
+                    .foregroundStyle(.green)
+                    .transition(.opacity)
+            }
+            
+            if showErrorAlert {
+                Text("⚠ Error sending feedback: \(errorMessage)")
+                    .font(.caption)
+                    .foregroundStyle(.red)
                     .transition(.opacity)
             }
         }
@@ -136,7 +163,7 @@ struct FeedbackView: View {
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
         let osVersion = ProcessInfo.processInfo.operatingSystemVersionString
         let hasPremium = StoreManager.shared.hasPremiumFeatures
-        return "Code Editor v\(version) (build \(build))\nmacOS \(osVersion)\nPremium: \(hasPremium ? "Yes" : "No")"
+        return "Clarity Code Edit v\(version) (build \(build))\nmacOS \(osVersion)\nPremium: \(hasPremium ? "Yes" : "No")"
     }
     
     private var fullFeedbackText: String {
@@ -170,20 +197,125 @@ struct FeedbackView: View {
         }
     }
     
-    private func sendFeedbackViaEmail() {
-        // Replace with your actual email address
-        let email = "feedback@yourapp.com"
-        let subject = "[Code Editor] \(feedbackType.rawValue)"
-        let body = fullFeedbackText
+    private func sendFeedback() {
+        guard let url = URL(string: "https://codeedit.sonomaenterprises.com/api/feedback-handler-v3.aspx") else {
+            showError("Invalid URL")
+            return
+        }
         
-        let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        let encodedBody = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        isSending = true
+        showSuccessAlert = false
+        showErrorAlert = false
         
-        if let url = URL(string: "mailto:\(email)?subject=\(encodedSubject)&body=\(encodedBody)") {
-            NSWorkspace.shared.open(url)
-            
-            // Also copy to clipboard as backup
-            copyToClipboard()
+        // Create a custom URL session configuration with timeout
+        let configuration = URLSessionConfiguration.default
+        configuration.timeoutIntervalForRequest = 30
+        configuration.timeoutIntervalForResource = 60
+        let session = URLSession(configuration: configuration)
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("CodeEditor-macOS", forHTTPHeaderField: "User-Agent")
+        
+        // Prepare the feedback data
+        let feedbackData: [String: Any] = [
+            "feedbackType": feedbackType.rawValue,
+            "feedback": feedbackText,
+            "fromEmail": "noreply@sonomaenterprises.com",
+            "replyTo": userEmail.isEmpty ? nil : userEmail,
+            "systemInfo": includeSystemInfo ? systemInfoString : nil,
+            "timestamp": ISO8601DateFormatter().string(from: Date())
+        ]
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: feedbackData)
+        } catch {
+            showError("Failed to encode feedback data: \(error.localizedDescription)")
+            isSending = false
+            return
+        }
+        
+        // Debug: Print request details
+        print("🔵 Sending feedback to: \(url.absoluteString)")
+        print("🔵 Request body: \(String(data: request.httpBody ?? Data(), encoding: .utf8) ?? "nil")")
+        
+        // Send the request
+        let task = session.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                isSending = false
+                
+                if let error = error {
+                    let nsError = error as NSError
+                    print("🔴 Network error: \(error.localizedDescription)")
+                    print("🔴 Error domain: \(nsError.domain)")
+                    print("🔴 Error code: \(nsError.code)")
+                    
+                    // Provide more specific error messages
+                    if nsError.domain == NSURLErrorDomain {
+                        switch nsError.code {
+                        case NSURLErrorCannotFindHost:
+                            showError("Cannot find server. Please check the URL and your internet connection.")
+                        case NSURLErrorNotConnectedToInternet:
+                            showError("No internet connection. Please check your network settings.")
+                        case NSURLErrorTimedOut:
+                            showError("Request timed out. Please try again.")
+                        case NSURLErrorCannotConnectToHost:
+                            showError("Cannot connect to server. The server may be down.")
+                        default:
+                            showError("Network error: \(error.localizedDescription)")
+                        }
+                    } else {
+                        showError(error.localizedDescription)
+                    }
+                    return
+                }
+                
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    showError("Invalid response from server")
+                    return
+                }
+                
+                print("🟢 Response status code: \(httpResponse.statusCode)")
+                if let data = data, let responseString = String(data: data, encoding: .utf8) {
+                    print("🟢 Response body: \(responseString)")
+                }
+                
+                if (200...299).contains(httpResponse.statusCode) {
+                    // Success
+                    withAnimation {
+                        showSuccessAlert = true
+                    }
+                    
+                    // Close the dialog after a delay
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        dismiss()
+                    }
+                } else {
+                    // Show response body in error if available
+                    var errorMsg = "Server returned status code \(httpResponse.statusCode)"
+                    if let data = data, let responseString = String(data: data, encoding: .utf8), !responseString.isEmpty {
+                        errorMsg += ": \(responseString)"
+                    }
+                    showError(errorMsg)
+                }
+            }
+        }
+        
+        task.resume()
+    }
+    
+    private func showError(_ message: String) {
+        errorMessage = message
+        withAnimation {
+            showErrorAlert = true
+        }
+        
+        // Hide error after 5 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+            withAnimation {
+                showErrorAlert = false
+            }
         }
     }
 }

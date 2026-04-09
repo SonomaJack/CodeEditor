@@ -26,6 +26,8 @@ struct ContentView: View {
     @State private var showMultiFileSearch = false
     @State private var isDropTargeted = false
     @State private var showFeedback = false
+    @State private var showPremiumGate = false
+    @State private var premiumFeatureMessage = ""
     
     var body: some View {
         NavigationSplitView {
@@ -42,28 +44,7 @@ struct ContentView: View {
             )
         }
         .sheet(isPresented: $showHelpWindow) {
-            // Temporary placeholder - Add HelpView.swift to your Xcode target to enable full help
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    Text("Code Editor Help")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                    
-                    Divider()
-                    
-                    Text("⌘F - Find")
-                    Text("⌥⌘H - Find and Replace")
-                    Text("⌘G - Find Next")
-                    Text("⇧⌘G - Find Previous")
-                    
-                    Divider()
-                    
-                    Text("To enable full help documentation, add HelpView.swift to your Xcode target.")
-                        .foregroundStyle(.secondary)
-                }
-                .padding(24)
-            }
-            .frame(width: 600, height: 400)
+            HelpView()
         }
         .sheet(isPresented: $showSettingsWindow) {
             SettingsView()
@@ -80,6 +61,9 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showFeedback) {
             FeedbackView()
+        }
+        .sheet(isPresented: $showPremiumGate) {
+            PremiumFeatureView(feature: premiumFeatureMessage)
         }
         .alert("Error", isPresented: $showErrorAlert) {
             Button("OK", role: .cancel) { }
@@ -340,7 +324,7 @@ struct ContentView: View {
                 .font(.system(size: 72))
                 .foregroundStyle(.blue)
             
-            Text("Code Editor")
+            Text("Clarity Code Edit")
                 .font(.largeTitle)
                 .fontWeight(.bold)
             
@@ -417,6 +401,17 @@ struct ContentView: View {
     private func openSpecificFile(_ url: URL) {
         do {
             let document = try CodeDocument.load(from: url)
+            
+            // Check if the detected language requires premium
+            if !FeatureAccess.canUseLanguage(document.language) {
+                // Allow opening the file, but downgrade to plain text
+                document.language = .plaintext
+                print("⚠️ Opened \(url.lastPathComponent) as plain text (premium language requires upgrade)")
+                
+                // Show premium notification (non-blocking)
+                premiumFeatureMessage = "This file appears to be \(CodeLanguage.detectLanguage(from: url.lastPathComponent).rawValue). Upgrade to Premium for full syntax highlighting and language support."
+                showPremiumGate = true
+            }
             
             // Check if file is already open
             if !documents.contains(where: { $0.fileURL == url }) {
@@ -499,6 +494,12 @@ struct ContentView: View {
             content: "",
             language: newFileLanguage
         )
+        
+        // If language is plaintext, enable auto-detection for new files
+        if newFileLanguage == .plaintext && newFileName.isEmpty {
+            document.shouldAutoDetectLanguage = true
+        }
+        
         documents.append(document)
         selectedDocument = document
         
@@ -618,6 +619,7 @@ struct NewFileSheet: View {
     let onCreate: () -> Void
     @Environment(\.dismiss) private var dismiss
     @StateObject private var store = StoreManager.shared
+    @State private var useAutoDetect = true
     
     var body: some View {
         VStack(spacing: 20) {
@@ -626,23 +628,37 @@ struct NewFileSheet: View {
                 .fontWeight(.bold)
             
             Form {
-                TextField("Filename", text: $filename)
+                TextField("Filename (optional)", text: $filename)
                     .textFieldStyle(.roundedBorder)
                 
-                Picker("Language", selection: $language) {
-                    ForEach(CodeLanguage.sortedLanguages(hasPremium: store.hasPremiumFeatures)) { lang in
-                        HStack {
-                            Text(lang.rawValue)
-                            if !FeatureAccess.canUseLanguage(lang) {
-                                Image(systemName: "lock.fill")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
+                Toggle("Auto-detect language from content", isOn: $useAutoDetect)
+                    .help("Language will be automatically detected as you type")
+                
+                if !useAutoDetect {
+                    Picker("Language", selection: $language) {
+                        ForEach(CodeLanguage.sortedLanguages(hasPremium: store.hasPremiumFeatures)) { lang in
+                            HStack {
+                                Text(lang.rawValue)
+                                if !FeatureAccess.canUseLanguage(lang) {
+                                    Image(systemName: "lock.fill")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
+                            .tag(lang)
                         }
-                        .tag(lang)
                     }
+                    .pickerStyle(.menu)
+                } else {
+                    HStack {
+                        Image(systemName: "wand.and.stars")
+                            .foregroundStyle(.blue)
+                        Text("Language will be detected automatically")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 4)
                 }
-                .pickerStyle(.menu)
             }
             .padding()
             
@@ -653,14 +669,17 @@ struct NewFileSheet: View {
                 .keyboardShortcut(.cancelAction)
                 
                 Button("Create") {
+                    // Set language to plaintext if auto-detect is enabled
+                    if useAutoDetect {
+                        language = .plaintext
+                    }
                     onCreate()
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(filename.isEmpty)
             }
         }
         .padding()
-        .frame(width: 400, height: 250)
+        .frame(width: 400, height: useAutoDetect ? 230 : 280)
     }
 }
 
@@ -727,12 +746,12 @@ struct WelcomeSheet: View {
                 .font(.system(size: 60))
                 .foregroundStyle(.blue)
             
-            Text("Welcome to Code Editor")
+            Text("Welcome to Clarity Code Edit")
                 .font(.title)
                 .fontWeight(.bold)
             
             VStack(alignment: .leading, spacing: 12) {
-                QuickTip(icon: "gearshape", text: "Access Settings via Code Editor menu → Settings... (⌘,)")
+                QuickTip(icon: "gearshape", text: "Access Settings via Clarity Code Edit menu → Settings... (⌘,)")
                 QuickTip(icon: "folder", text: "Recent files auto-load on launch")
                 QuickTip(icon: "xmark.circle", text: "Clear recent files via File → Clear Recent Files")
                 QuickTip(icon: "tablecells", text: "Click tabs at top to switch between files")
