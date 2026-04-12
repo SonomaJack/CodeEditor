@@ -79,13 +79,13 @@ struct CodeEditorView: View {
                     .pickerStyle(.menu)
                     .frame(width: 180)
                     .onChange(of: document.language) { oldValue, newValue in
-                        if !FeatureAccess.canUseLanguage(newValue) {
-                            document.language = oldValue
-                            premiumFeatureMessage = FeatureAccess.featureDescription(for: .language(newValue))
-                            showPremiumGate = true
-                        } else {
-                            // Disable auto-detect when user manually changes language
-                            document.shouldAutoDetectLanguage = false
+                        // Only check premium for manual changes (not auto-detection)
+                        if !document.shouldAutoDetectLanguage {
+                            if !FeatureAccess.canUseLanguage(newValue) {
+                                document.language = oldValue
+                                premiumFeatureMessage = FeatureAccess.featureDescription(for: .language(newValue))
+                                showPremiumGate = true
+                            }
                         }
                     }
                     

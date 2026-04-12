@@ -15,6 +15,11 @@ struct PremiumFeatureView: View {
     
     let feature: String
     
+    init(feature: String) {
+        self.feature = feature
+        print("💎 PremiumFeatureView initialized with feature: \(feature)")
+    }
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
@@ -58,15 +63,24 @@ struct PremiumFeatureView: View {
                     if store.isLoading {
                         ProgressView("Loading pricing...")
                             .padding()
+                            .onAppear { print("💎 Showing loading state") }
                     } else if let product = store.products.first(where: { $0.id == ProductID.premiumFeatures.rawValue }) {
                         // Show product with price
                         Button(action: {
+                            print("💎 PURCHASE BUTTON TAPPED!")
                             Task {
                                 do {
-                                    _ = try await store.purchase(product)
-                                    dismiss()
+                                    print("🛒 Purchase button clicked")
+                                    let transaction = try await store.purchase(product)
+                                    if transaction != nil {
+                                        print("✅ Purchase completed successfully")
+                                        dismiss()
+                                    } else {
+                                        print("⚠️ Purchase returned nil (cancelled or pending)")
+                                    }
                                 } catch {
-                                    print("Purchase failed: \(error)")
+                                    print("❌ Purchase error: \(error)")
+                                    store.errorMessage = "Purchase failed: \(error.localizedDescription)"
                                 }
                             }
                         }) {
@@ -82,24 +96,33 @@ struct PremiumFeatureView: View {
                             .cornerRadius(10)
                         }
                         .buttonStyle(.plain)
+                        .onAppear { 
+                            print("💎 Showing REAL purchase button with price: \(product.displayPrice)")
+                        }
                     } else {
                         // Fallback button if products didn't load
                         Button(action: {
+                            print("💎 FALLBACK BUTTON TAPPED!")
                             Task {
+                                print("💎 Trying to reload products...")
                                 // Try to reload products
                                 await store.loadProducts()
                                 
                                 // If still no products, try to purchase anyway
                                 if let product = store.products.first(where: { $0.id == ProductID.premiumFeatures.rawValue }) {
+                                    print("💎 Products loaded, attempting purchase...")
                                     _ = try? await store.purchase(product)
                                     dismiss()
+                                } else {
+                                    print("❌ Still no products after reload!")
+                                    store.errorMessage = "Unable to load purchase options. Please check your internet connection."
                                 }
                             }
                         }) {
                             HStack {
                                 Text("Unlock Premium")
                                 Spacer()
-                                Text("$4.99")
+                                Text("$14.99")
                             }
                             .padding()
                             .frame(maxWidth: .infinity)
@@ -108,6 +131,9 @@ struct PremiumFeatureView: View {
                             .cornerRadius(10)
                         }
                         .buttonStyle(.plain)
+                        .onAppear { 
+                            print("💎 Showing FALLBACK button (products didn't load) - displaying fallback price")
+                        }
                     }
                     
                     // Restore purchases button (always show)
@@ -140,10 +166,24 @@ struct PremiumFeatureView: View {
         }
         .frame(width: 550, height: 700)
         .task {
+            print("💎 PremiumFeatureView appeared")
+            print("💎 Store loading: \(store.isLoading)")
+            print("💎 Products count: \(store.products.count)")
+            print("💎 Has premium: \(store.hasPremiumFeatures)")
+            
             // Ensure products are loaded when view appears
             if store.products.isEmpty {
+                print("💎 Products empty, loading...")
                 await store.loadProducts()
+            } else {
+                print("💎 Products already loaded: \(store.products.map { $0.id })")
             }
+        }
+        .onAppear {
+            print("💎 PremiumFeatureView onAppear")
+        }
+        .onDisappear {
+            print("💎 PremiumFeatureView dismissed")
         }
     }
 }

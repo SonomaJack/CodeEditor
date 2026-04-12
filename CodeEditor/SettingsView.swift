@@ -73,6 +73,12 @@ struct SettingsView: View {
         .sheet(isPresented: $showPremiumSheet) {
             PremiumFeatureView(feature: "Unlock all premium features")
         }
+        .task {
+            // Load products when settings opens
+            if store.products.isEmpty {
+                await store.loadProducts()
+            }
+        }
     }
     
     private var generalSettings: some View {
@@ -198,15 +204,16 @@ struct SettingsView: View {
             if !store.hasPremiumFeatures {
                 Divider()
                 
-                if store.isLoading {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                        Spacer()
-                    }
-                    .padding()
-                } else if let product = store.products.first(where: { $0.id == ProductID.premiumFeatures.rawValue }) {
-                    VStack(spacing: 12) {
+                VStack(spacing: 12) {
+                    if store.isLoading {
+                        HStack {
+                            Spacer()
+                            ProgressView("Loading pricing...")
+                            Spacer()
+                        }
+                        .padding()
+                    } else if let product = store.products.first(where: { $0.id == ProductID.premiumFeatures.rawValue }) {
+                        // Show button with real price from StoreKit
                         Button(action: {
                             Task {
                                 do {
@@ -230,16 +237,44 @@ struct SettingsView: View {
                             .cornerRadius(10)
                         }
                         .buttonStyle(.plain)
-                        
-                        Button("Restore Purchases") {
+                    } else {
+                        // Fallback button if products didn't load
+                        Button(action: {
                             Task {
-                                await store.restorePurchases()
+                                // Try to reload products
+                                await store.loadProducts()
+                                
+                                // If still no products, try to purchase anyway
+                                if let product = store.products.first(where: { $0.id == ProductID.premiumFeatures.rawValue }) {
+                                    _ = try? await store.purchase(product)
+                                }
                             }
+                        }) {
+                            HStack {
+                                Text("Unlock Premium")
+                                    .fontWeight(.semibold)
+                                Spacer()
+                                Text("$14.99")
+                                    .fontWeight(.bold)
+                            }
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.accentColor)
+                            .foregroundStyle(.white)
+                            .cornerRadius(10)
                         }
-                        .foregroundStyle(.secondary)
+                        .buttonStyle(.plain)
                     }
-                    .padding(.vertical, 8)
+                    
+                    // Always show restore button
+                    Button("Restore Purchases") {
+                        Task {
+                            await store.restorePurchases()
+                        }
+                    }
+                    .foregroundStyle(.secondary)
                 }
+                .padding(.vertical, 8)
                 
                 if let errorMessage = store.errorMessage {
                     Text(errorMessage)

@@ -10,4 +10,58 @@
    <FileRef
       location = "group:PREMIUM_UX_IMPROVEMENTS.md">
    </FileRef>
+   <FileRef
+      location = "group:FIX_PREMIUM_BYPASS_RELAUNCH.md">
+   </FileRef>
+   <FileRef
+      location = "group:TESTFLIGHT_IAP_SETUP.md">
+   </FileRef>
+   <FileRef
+      location = "group:TESTFLIGHT_DIAGNOSIS.md">
+   </FileRef>
+   <FileRef
+      location = "group:FIX_PREMIUM_OVERRIDE.md">
+   </FileRef>
+   <FileRef
+      location = "group:LanguageDetector.swift">
+   </FileRef>
+   <FileRef
+      location = "group:ULTIMATE_LANGUAGE_DETECTION.md">
+   </FileRef>
+   <FileRef
+      location = "group:marketing-page.html">
+   </FileRef>
+   <FileRef
+      location = "group:APP_STORE_SUBMISSION_CHECKLIST.md">
+   </FileRef>
+   <FileRef
+      location = "group:APP_STORE_READY.md">
+   </FileRef>
+   <FileRef
+      location = "group:PRICING_CONFIGURATION.md">
+   </FileRef>
+   <FileRef
+      location = "group:PRICING_STRATEGY.md">
+   </FileRef>
+   <FileRef
+      location = "group:index.html">
+   </FileRef>
+   <FileRef
+      location = "group:PRICING_ANALYSIS.md">
+   </FileRef>
+   <FileRef
+      location = "group:FINAL_PRICING_SUMMARY.md">
+   </FileRef>
+   <FileRef
+      location = "group:privacy.html">
+   </FileRef>
+   <FileRef
+      location = "group:terms.html">
+   </FileRef>
+   <FileRef
+      location = "group:LAUNCH_CHECKLIST.md">
+   </FileRef>
+   <FileRef
+      location = "group:GIT_COMMIT_GUIDE.md">
+   </FileRef>
 </Workspace>

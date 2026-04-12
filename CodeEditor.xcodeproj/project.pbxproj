@@ -55,16 +55,28 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				LanguageDetector.swift,
 			);
 			target = AABCB7F02F75BB970060B234 /* CodeEditor */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		AA69F9EE2F89CB6B0019FD90 /* Exceptions for "CodeEditor" folder in "Copy Bundle Resources" phase from "CodeEditor" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			buildPhase = AABCB7EF2F75BB970060B234 /* Resources */;
+			membershipExceptions = (
+				LanguageDetector.swift,
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		AABCB7F32F75BB970060B234 /* CodeEditor */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				AA78D6E02F86DC7600E21945 /* Exceptions for "CodeEditor" folder in "CodeEditor" target */,
+				AA69F9EE2F89CB6B0019FD90 /* Exceptions for "CodeEditor" folder in "Copy Bundle Resources" phase from "CodeEditor" target */,
 			);
 			path = CodeEditor;
 			sourceTree = "<group>";
@@ -430,7 +442,7 @@
 				AUTOMATION_APPLE_EVENTS = NO;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_TEAM = 9H7GHNH7QG;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER = readwrite;
@@ -457,7 +469,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.sonomaenterprises.ClarityCodeEdit;
 				PRODUCT_NAME = "Clarity Code Edit";
 				REGISTER_APP_GROUPS = YES;
@@ -484,7 +496,7 @@
 				AUTOMATION_APPLE_EVENTS = NO;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_TEAM = 9H7GHNH7QG;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER = readwrite;
@@ -511,7 +523,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.sonomaenterprises.ClarityCodeEdit;
 				PRODUCT_NAME = "Clarity Code Edit";
 				REGISTER_APP_GROUPS = YES;

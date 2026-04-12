@@ -1,126 +1,17 @@
 //
-//  CodeDocument.swift
+//  LanguageDetector.swift
 //  CodeEditor
 //
-//  Created by J Bretcher on 3/26/26.
+//  Created by J Bretcher on 4/10/26.
 //
 
 import Foundation
 
-enum CodeLanguage: String, CaseIterable, Identifiable {
-    case swift = "Swift"
-    case python = "Python"
-    case javascript = "JavaScript"
-    case typescript = "TypeScript"
-    case java = "Java"
-    case apex = "Apex (Salesforce)"
-    case cpp = "C++"
-    case c = "C"
-    case csharp = "C#"
-    case go = "Go"
-    case rust = "Rust"
-    case ruby = "Ruby"
-    case php = "PHP"
-    case sql = "SQL"
-    case html = "HTML"
-    case css = "CSS"
-    case markdown = "Markdown"
-    case json = "JSON"
-    case xml = "XML"
-    case yaml = "YAML"
-    case csv = "CSV"
-    case plaintext = "Plain Text"
-    case unknown = "Unknown"
+/// Advanced language detection using scoring algorithm
+struct LanguageDetector {
     
-    var id: String { rawValue }
-    
-    /// Get languages sorted with free languages first if not premium
-    static func sortedLanguages(hasPremium: Bool) -> [CodeLanguage] {
-        if hasPremium {
-            // Alphabetical if premium
-            return allCases.sorted { $0.rawValue < $1.rawValue }
-        } else {
-            // Free languages first, then rest alphabetically
-            let freeLanguages = FeatureAccess.freeLanguages.sorted { $0.rawValue < $1.rawValue }
-            let premiumLanguages = allCases.filter { !FeatureAccess.freeLanguages.contains($0) }
-                .sorted { $0.rawValue < $1.rawValue }
-            return freeLanguages + premiumLanguages
-        }
-    }
-    
-    var fileExtension: String {
-        switch self {
-        case .swift: return ".swift"
-        case .python: return ".py"
-        case .javascript: return ".js"
-        case .typescript: return ".ts"
-        case .java: return ".java"
-        case .apex: return ".cls"
-        case .cpp: return ".cpp"
-        case .c: return ".c"
-        case .csharp: return ".cs"
-        case .go: return ".go"
-        case .rust: return ".rs"
-        case .ruby: return ".rb"
-        case .php: return ".php"
-        case .sql: return ".sql"
-        case .html: return ".html"
-        case .css: return ".css"
-        case .markdown: return ".md"
-        case .json: return ".json"
-        case .xml: return ".xml"
-        case .yaml: return ".yaml"
-        case .csv: return ".csv"
-        case .plaintext: return ".txt"
-        case .unknown: return ".txt"
-        }
-    }
-    
-    var supportedExtensions: [String] {
-        switch self {
-        case .swift: return [".swift"]
-        case .python: return [".py", ".pyw"]
-        case .javascript: return [".js", ".jsx", ".mjs"]
-        case .typescript: return [".ts", ".tsx"]
-        case .java: return [".java"]
-        case .apex: return [".cls", ".trigger"]
-        case .cpp: return [".cpp", ".hpp", ".cc", ".cxx", ".h++"]
-        case .c: return [".c", ".h"]
-        case .csharp: return [".cs"]
-        case .go: return [".go"]
-        case .rust: return [".rs"]
-        case .ruby: return [".rb", ".rake"]
-        case .php: return [".php", ".phtml"]
-        case .sql: return [".sql"]
-        case .html: return [".html", ".htm"]
-        case .css: return [".css", ".scss", ".sass", ".less"]
-        case .markdown: return [".md", ".markdown"]
-        case .json: return [".json"]
-        case .xml: return [".xml", ".plist"]
-        case .yaml: return [".yaml", ".yml"]
-        case .csv: return [".csv"]
-        case .plaintext: return [".txt", ".text"]
-        case .unknown: return [] // Catch-all for unrecognized extensions
-        }
-    }
-    
-    static func detectLanguage(from filename: String) -> CodeLanguage {
-        let lowercased = filename.lowercased()
-        
-        // Check each language's supported extensions
-        for language in CodeLanguage.allCases where language != .unknown {
-            for ext in language.supportedExtensions {
-                if lowercased.hasSuffix(ext) {
-                    return language
-                }
-            }
-        }
-        
-        // Return unknown for unrecognized file types
-        return .unknown
-    }
-    
-    /// Detect language from content analysis using advanced scoring algorithm
+    /// Detect language from content using scoring system
+    /// Returns the language with the highest confidence score
     static func detectLanguage(fromContent content: String) -> CodeLanguage? {
         // Skip if content is too short or empty
         guard content.count > 3 else { return nil }
@@ -170,7 +61,7 @@ enum CodeLanguage: String, CaseIterable, Identifiable {
         return best.key
     }
     
-    // MARK: - Language Detection Helpers
+    // MARK: - HTML Detection
     
     private static func scoreHTML(trimmed: String, firstLine: String, lowercased: String) -> Int {
         var score = 0
@@ -190,6 +81,8 @@ enum CodeLanguage: String, CaseIterable, Identifiable {
         return score
     }
     
+    // MARK: - XML Detection
+    
     private static func scoreXML(trimmed: String) -> Int {
         var score = 0
         
@@ -200,6 +93,8 @@ enum CodeLanguage: String, CaseIterable, Identifiable {
         
         return score
     }
+    
+    // MARK: - JSON Detection
     
     private static func scoreJSON(trimmed: String) -> Int {
         var score = 0
@@ -219,66 +114,30 @@ enum CodeLanguage: String, CaseIterable, Identifiable {
         return score
     }
     
-    private static func scoreCSharp(trimmed: String, lines: [String]) -> Int {
+    // MARK: - C# Detection
+    
+    private static func scoreCSharp(trimmed: String, lines: [Substring]) -> Int {
         var score = 0
         
-        // Strong indicators - these are highly specific to C#
-        if trimmed.contains("using System") { score += 80 }
-        if trimmed.contains("using System.") { score += 60 }
-        if trimmed.contains("{ get; set; }") { score += 100 }
-        if trimmed.contains("{ get; }") || trimmed.contains("{ set; }") { score += 70 }
-        if trimmed.contains("namespace ") && trimmed.contains("{") { score += 60 }
-        
-        // Class and method indicators
-        if trimmed.contains("public class ") { score += 30 }
-        if trimmed.contains("private class ") { score += 30 }
-        if trimmed.contains("public static void Main") { score += 80 }
-        if trimmed.contains("static void Main") { score += 70 }
-        
-        // C# specific keywords and patterns
-        if trimmed.contains("Console.WriteLine") { score += 50 }
-        if trimmed.contains("Console.Write") { score += 45 }
-        if trimmed.contains("private readonly ") { score += 40 }
-        if trimmed.contains("readonly ") { score += 30 }
-        if trimmed.contains("new()") { score += 40 }  // Target-typed new
-        if trimmed.contains(" new ") && trimmed.contains("{") { score += 25 }
-        
-        // Async/await patterns
-        if trimmed.contains("async Task") { score += 40 }
-        if trimmed.contains("await ") { score += 20 }
-        
-        // Null handling operators
-        if trimmed.contains("?.") { score += 25 }
-        if trimmed.contains("??") { score += 20 }
-        if trimmed.contains("??=") { score += 30 }
-        
-        // LINQ patterns
-        if trimmed.contains(" from ") && trimmed.contains(" select ") { score += 35 }
-        if trimmed.contains(".Where(") || trimmed.contains(".Select(") { score += 30 }
-        if trimmed.contains(".Sum(") || trimmed.contains(".Any(") { score += 25 }
-        
-        // Type annotations and generics
-        if trimmed.contains("<") && trimmed.contains(">") && trimmed.contains("List<") { score += 35 }
-        if trimmed.contains("decimal ") || trimmed.contains(": decimal") { score += 40 }
-        if trimmed.contains("string ") || trimmed.contains(": string") { score += 15 }
-        
-        // Attributes
+        if trimmed.contains("using System") { score += 60 }
+        if trimmed.contains("using System.") { score += 40 }
+        if trimmed.contains("{ get; set; }") { score += 70 }
+        if trimmed.contains("{ get; }") { score += 50 }
+        if trimmed.contains("namespace ") && trimmed.contains("class ") { score += 45 }
+        if trimmed.contains("public class ") { score += 25 }
+        if trimmed.contains("private class ") { score += 25 }
+        if trimmed.contains("async Task") { score += 35 }
+        if trimmed.contains("await ") { score += 15 }
+        if trimmed.contains("?.") { score += 20 }
+        if trimmed.contains("??") { score += 15 }
+        if trimmed.contains(" from ") && trimmed.contains(" select ") { score += 30 }
+        if trimmed.contains(".Where(") || trimmed.contains(".Select(") { score += 25 }
         if trimmed.contains("[") && trimmed.contains("]") && !trimmed.hasPrefix("[") { score += 10 }
-        
-        // String interpolation
-        if trimmed.contains("$\"") { score += 35 }
-        
-        // Lambda expressions with types
-        if trimmed.contains("=>") && trimmed.contains("(") { score += 20 }
-        
-        // throw keyword
-        if trimmed.contains("throw new ") { score += 30 }
-        
-        // var keyword (contextual)
-        if trimmed.contains("var ") && trimmed.contains(" = new ") { score += 25 }
         
         return score
     }
+    
+    // MARK: - Java Detection
     
     private static func scoreJava(trimmed: String, firstLine: String) -> Int {
         var score = 0
@@ -298,6 +157,8 @@ enum CodeLanguage: String, CaseIterable, Identifiable {
         
         return score
     }
+    
+    // MARK: - Swift Detection
     
     private static func scoreSwift(trimmed: String, firstLine: String) -> Int {
         var score = 0
@@ -327,10 +188,11 @@ enum CodeLanguage: String, CaseIterable, Identifiable {
         return score
     }
     
-    private static func scorePython(trimmed: String, firstLine: String, lines: [String]) -> Int {
+    // MARK: - Python Detection
+    
+    private static func scorePython(trimmed: String, firstLine: String, lines: [Substring]) -> Int {
         var score = 0
         
-        // Strong Python indicators
         if firstLine.hasPrefix("import ") && !trimmed.contains("java.") && !trimmed.contains("System") {
             score += 40
         }
@@ -349,18 +211,14 @@ enum CodeLanguage: String, CaseIterable, Identifiable {
         if trimmed.contains("range(") { score += 15 }
         if trimmed.contains("@") && lines.contains(where: { $0.hasPrefix("@") }) { score += 25 }
         
-        // Strong negative indicators for C-style languages
-        if trimmed.contains("{") && trimmed.contains("}") { score -= 50 }
-        if trimmed.contains(";") && !trimmed.contains("print") { score -= 40 }
-        if trimmed.contains("using System") { score -= 100 }  // Definitely not Python
-        if trimmed.contains("namespace ") && trimmed.contains("{") { score -= 80 }
-        if trimmed.contains("{ get; set; }") { score -= 100 }  // Definitely not Python
-        if trimmed.contains("Console.WriteLine") { score -= 80 }
-        if trimmed.contains("public class ") || trimmed.contains("private class ") { score -= 60 }
-        if trimmed.contains("static void Main") { score -= 100 }
+        if trimmed.contains("{") && trimmed.contains("}") { score -= 40 }
+        if trimmed.contains(";") && !trimmed.contains("print") { score -= 30 }
+        if trimmed.contains("using ") || trimmed.contains("package ") { score -= 50 }
         
         return max(score, 0)
     }
+    
+    // MARK: - JavaScript Detection
     
     private static func scoreJavaScript(trimmed: String, lowercased: String) -> Int {
         var score = 0
@@ -384,6 +242,8 @@ enum CodeLanguage: String, CaseIterable, Identifiable {
         
         return max(score, 0)
     }
+    
+    // MARK: - TypeScript Detection
     
     private static func scoreTypeScript(trimmed: String, lowercased: String) -> Int {
         var score = scoreJavaScript(trimmed: trimmed, lowercased: lowercased)
@@ -412,6 +272,8 @@ enum CodeLanguage: String, CaseIterable, Identifiable {
         return score
     }
     
+    // MARK: - Apex Detection
+    
     private static func scoreApex(trimmed: String) -> Int {
         var score = 0
         
@@ -427,6 +289,8 @@ enum CodeLanguage: String, CaseIterable, Identifiable {
         
         return score
     }
+    
+    // MARK: - C++ Detection
     
     private static func scoreCPP(trimmed: String) -> Int {
         var score = 0
@@ -447,6 +311,8 @@ enum CodeLanguage: String, CaseIterable, Identifiable {
         return score
     }
     
+    // MARK: - C Detection
+    
     private static func scoreC(trimmed: String) -> Int {
         var score = 0
         
@@ -464,6 +330,8 @@ enum CodeLanguage: String, CaseIterable, Identifiable {
         
         return max(score, 0)
     }
+    
+    // MARK: - Go Detection
     
     private static func scoreGo(trimmed: String, firstLine: String) -> Int {
         var score = 0
@@ -483,6 +351,8 @@ enum CodeLanguage: String, CaseIterable, Identifiable {
         return score
     }
     
+    // MARK: - Rust Detection
+    
     private static func scoreRust(trimmed: String) -> Int {
         var score = 0
         
@@ -500,6 +370,8 @@ enum CodeLanguage: String, CaseIterable, Identifiable {
         return score
     }
     
+    // MARK: - Ruby Detection
+    
     private static func scoreRuby(trimmed: String, firstLine: String) -> Int {
         var score = 0
         
@@ -515,6 +387,8 @@ enum CodeLanguage: String, CaseIterable, Identifiable {
         return score
     }
     
+    // MARK: - PHP Detection
+    
     private static func scorePHP(trimmed: String) -> Int {
         var score = 0
         
@@ -527,6 +401,8 @@ enum CodeLanguage: String, CaseIterable, Identifiable {
         
         return score
     }
+    
+    // MARK: - SQL Detection
     
     private static func scoreSQL(firstLine: String, trimmed: String) -> Int {
         var score = 0
@@ -548,6 +424,8 @@ enum CodeLanguage: String, CaseIterable, Identifiable {
         return score
     }
     
+    // MARK: - CSS Detection
+    
     private static func scoreCSS(trimmed: String) -> Int {
         var score = 0
         
@@ -568,7 +446,9 @@ enum CodeLanguage: String, CaseIterable, Identifiable {
         return score
     }
     
-    private static func scoreYAML(trimmed: String, lines: [String], firstLine: String) -> Int {
+    // MARK: - YAML Detection
+    
+    private static func scoreYAML(trimmed: String, lines: [Substring], firstLine: String) -> Int {
         var score = 0
         
         if trimmed.hasPrefix("---") {
@@ -587,7 +467,9 @@ enum CodeLanguage: String, CaseIterable, Identifiable {
         return score
     }
     
-    private static func scoreMarkdown(trimmed: String, lines: [String], firstLine: String) -> Int {
+    // MARK: - Markdown Detection
+    
+    private static func scoreMarkdown(trimmed: String, lines: [Substring], firstLine: String) -> Int {
         var score = 0
         
         if firstLine.hasPrefix("# ") { score += 50 }
@@ -606,7 +488,9 @@ enum CodeLanguage: String, CaseIterable, Identifiable {
         return score
     }
     
-    private static func scoreCSV(lines: [String], firstLine: String) -> Int {
+    // MARK: - CSV Detection
+    
+    private static func scoreCSV(lines: [Substring], firstLine: String) -> Int {
         var score = 0
         
         guard lines.count >= 2 else { return 0 }
@@ -626,124 +510,5 @@ enum CodeLanguage: String, CaseIterable, Identifiable {
         }
         
         return score
-    }
-}
-
-@Observable
-class CodeDocument: Identifiable, Hashable {
-    let id = UUID()
-    var filename: String
-    var content: String {
-        didSet {
-            // Auto-detect language if file is unnamed/untitled and language is plaintext
-            if shouldAutoDetectLanguage && content != oldValue {
-                updateLanguageFromContent()
-            }
-        }
-    }
-    var language: CodeLanguage
-    var isModified: Bool = false
-    var fileURL: URL?
-    var lastSaveDate: Date?
-    var showLineNumbers: Bool = true
-    var shouldAutoDetectLanguage: Bool = true // Enable auto-detection for new files
-    
-    init(filename: String, content: String = "", language: CodeLanguage? = nil, fileURL: URL? = nil) {
-        self.filename = filename
-        self.content = content
-        self.language = language ?? CodeLanguage.detectLanguage(from: filename)
-        self.fileURL = fileURL
-        self.lastSaveDate = nil
-        
-        // Disable auto-detection if file is loaded from disk (has URL)
-        self.shouldAutoDetectLanguage = (fileURL == nil)
-    }
-    
-    /// Update language based on content analysis
-    func updateLanguageFromContent() {
-        // Only auto-detect if enabled and file doesn't have a specific extension
-        guard shouldAutoDetectLanguage else { return }
-        
-        // Don't override if filename has a recognized extension
-        if !filename.hasPrefix("Untitled") && filename.contains(".") {
-            let detectedFromName = CodeLanguage.detectLanguage(from: filename)
-            if detectedFromName != .plaintext && detectedFromName != .unknown {
-                // User gave it a specific extension, respect that
-                shouldAutoDetectLanguage = false
-                return
-            }
-        }
-        
-        if let detectedLanguage = CodeLanguage.detectLanguage(fromContent: content) {
-            if language != detectedLanguage {
-                language = detectedLanguage
-                print("🔍 Auto-detected language: \(detectedLanguage.rawValue)")
-            }
-        }
-    }
-    
-    // Load document from file URL
-    static func load(from url: URL) throws -> CodeDocument {
-        // Try to load as UTF-8 text
-        var content: String
-        var language: CodeLanguage
-        
-        do {
-            content = try String(contentsOf: url, encoding: .utf8)
-            language = CodeLanguage.detectLanguage(from: url.lastPathComponent)
-        } catch {
-            // If UTF-8 fails, try other encodings
-            if let data = try? Data(contentsOf: url),
-               let decodedString = String(data: data, encoding: .ascii) ??
-                                   String(data: data, encoding: .isoLatin1) {
-                content = decodedString
-                language = .unknown
-                print("⚠️ Opened file with non-UTF8 encoding: \(url.lastPathComponent)")
-            } else {
-                // If all text decodings fail, show a placeholder
-                throw NSError(
-                    domain: "ClarityCodeEdit",
-                    code: 2,
-                    userInfo: [NSLocalizedDescriptionKey: "Unable to read file as text. File may be binary or use an unsupported encoding."]
-                )
-            }
-        }
-        
-        let filename = url.lastPathComponent
-        
-        // Get file modification date
-        let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
-        let modificationDate = attributes[.modificationDate] as? Date
-        
-        let document = CodeDocument(
-            filename: filename,
-            content: content,
-            language: language,
-            fileURL: url
-        )
-        document.lastSaveDate = modificationDate
-        document.shouldAutoDetectLanguage = false // Don't auto-detect for existing files
-        
-        return document
-    }
-    
-    // Save document to file
-    func save() throws {
-        guard let url = fileURL else {
-            throw NSError(domain: "ClarityCodeEdit", code: 1, userInfo: [NSLocalizedDescriptionKey: "No file URL specified"])
-        }
-        
-        try content.write(to: url, atomically: true, encoding: .utf8)
-        isModified = false
-        lastSaveDate = Date()
-    }
-    
-    // MARK: - Hashable Conformance
-    static func == (lhs: CodeDocument, rhs: CodeDocument) -> Bool {
-        lhs.id == rhs.id
-    }
-    
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
     }
 }

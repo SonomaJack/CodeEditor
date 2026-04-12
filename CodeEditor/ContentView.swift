@@ -519,9 +519,36 @@ struct ContentView: View {
     private func loadRecentFiles() {
         let recentDocuments = DocumentPersistence.loadRecentFiles()
         if !recentDocuments.isEmpty {
+            var downgradedCount = 0
+            var downgradedLanguages: Set<String> = []
+            
+            // Check each document for premium language requirements
+            for document in recentDocuments {
+                if !FeatureAccess.canUseLanguage(document.language) {
+                    // Track what was downgraded
+                    downgradedLanguages.insert(document.language.rawValue)
+                    downgradedCount += 1
+                    
+                    // Downgrade to plain text if language requires premium
+                    document.language = .plaintext
+                    print("⚠️ Downgraded \(document.filename) to plain text (premium language requires upgrade)")
+                }
+            }
+            
             documents = recentDocuments
             selectedDocument = recentDocuments.first
             hasLoadedRecentFiles = true
+            
+            // Show notification if files were downgraded
+            if downgradedCount > 0 {
+                let languageList = downgradedLanguages.sorted().joined(separator: ", ")
+                premiumFeatureMessage = "\(downgradedCount) file\(downgradedCount == 1 ? "" : "s") opened as Plain Text (\(languageList) requires Premium). Upgrade for full syntax highlighting."
+                
+                // Show premium gate after a short delay (let UI settle)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    showPremiumGate = true
+                }
+            }
         }
     }
     

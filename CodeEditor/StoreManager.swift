@@ -41,11 +41,14 @@ class StoreManager: ObservableObject {
     private var updateListenerTask: Task<Void, Never>?
     
     init() {
+        print("🏪 StoreManager initializing...")
         updateListenerTask = listenForTransactions()
         
         Task {
+            print("🏪 Loading products and purchases...")
             await loadProducts()
             await updatePurchasedProducts()
+            print("🏪 Initialization complete. Products: \(products.count), Purchased: \(purchasedProducts.count)")
         }
     }
     
@@ -55,36 +58,59 @@ class StoreManager: ObservableObject {
     
     /// Load products from the App Store
     func loadProducts() async {
+        print("📦 Loading products from App Store...")
         isLoading = true
-        defer { isLoading = false }
+        defer { 
+            isLoading = false
+            print("📦 Loading complete. Found \(products.count) product(s)")
+        }
         
         do {
             let productIds = ProductID.allCases.map { $0.rawValue }
+            print("📦 Requesting products: \(productIds)")
             products = try await Product.products(for: productIds)
+            
+            if products.isEmpty {
+                print("⚠️ No products returned from App Store")
+            } else {
+                for product in products {
+                    print("✅ Product loaded: \(product.id) - \(product.displayName) - \(product.displayPrice)")
+                }
+            }
         } catch {
             errorMessage = "Failed to load products: \(error.localizedDescription)"
-            print("Failed to load products: \(error)")
+            print("❌ Failed to load products: \(error)")
         }
     }
     
     /// Purchase a product
     func purchase(_ product: Product) async throws -> StoreKit.Transaction? {
+        print("🛒 Attempting to purchase: \(product.id)")
+        
         let result = try await product.purchase()
         
         switch result {
         case .success(let verification):
+            print("✅ Purchase successful, verifying...")
             let transaction = try checkVerified(verification)
             await transaction.finish()
             await updatePurchasedProducts()
+            print("✅ Transaction finished and products updated")
             return transaction
             
         case .userCancelled:
+            print("❌ User cancelled purchase")
+            errorMessage = "Purchase was cancelled"
             return nil
             
         case .pending:
+            print("⏳ Purchase is pending")
+            errorMessage = "Purchase is pending approval"
             return nil
             
         @unknown default:
+            print("⚠️ Unknown purchase result")
+            errorMessage = "An unknown error occurred"
             return nil
         }
     }
@@ -102,7 +128,16 @@ class StoreManager: ObservableObject {
     
     /// Check if user has premium features
     var hasPremiumFeatures: Bool {
-        purchasedProducts.contains(ProductID.premiumFeatures.rawValue)
+        // Check override first (for TestFlight testing)
+        if FeatureAccess.overridePremiumForTesting {
+            print("🔐 Premium check: ✅ HAS PREMIUM (OVERRIDE ACTIVE)")
+            return true
+        }
+        
+        // Check actual purchase status
+        let result = purchasedProducts.contains(ProductID.premiumFeatures.rawValue)
+        print("🔐 Premium check: \(result ? "✅ HAS PREMIUM" : "❌ NO PREMIUM")")
+        return result
     }
     
     /// Update the list of purchased products

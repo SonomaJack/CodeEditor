@@ -11,16 +11,21 @@ import Foundation
 struct FeatureAccess {
     
     // MARK: - Development Testing
-    /// Set to true to test premium features without purchase (DISABLE IN PRODUCTION)
+    /// Set to true to test premium features without purchase during development
+    /// ⚠️ PRODUCTION: This is now set to FALSE for App Store release
+    /// Premium features are now properly gated behind in-app purchase
     static let overridePremiumForTesting = false
     
     /// Check if premium features are unlocked
     static var hasPremium: Bool {
         #if DEBUG
+        // Only allow override in DEBUG builds for development
         if overridePremiumForTesting {
+            print("⚠️ DEBUG: PREMIUM OVERRIDE ACTIVE - All features unlocked for testing")
             return true
         }
         #endif
+        
         return StoreManager.shared.hasPremiumFeatures
     }
     

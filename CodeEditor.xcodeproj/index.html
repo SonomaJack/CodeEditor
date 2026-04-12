@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Clarity Code - Professional code editor for macOS with support for 20+ programming languages. Native performance, intelligent syntax highlighting, and one-time purchase.">
+    <meta name="keywords" content="code editor, macOS, Swift, Python, JavaScript, syntax highlighting, developer tools, Salesforce Apex">
+    <title>Clarity Code - Professional Code Editor for macOS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #007AFF;
+            --secondary-color: #5856D6;
+            --dark-bg: #1C1C1E;
+            --light-bg: #F2F2F7;
+            --text-dark: #000000;
+            --text-light: #FFFFFF;
+            --text-secondary: #8E8E93;
+            --accent-green: #34C759;
+            --accent-orange: #FF9500;
+            --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: var(--text-dark);
+            background-color: var(--light-bg);
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: var(--text-light);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        nav {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-light);
+            text-decoration: none;
+            font-weight: 500;
+            transition: opacity 0.3s;
+        }
+
+        .nav-links a:hover {
+            opacity: 0.8;
+        }
+
+        .cta-button {
+            background-color: var(--text-light);
+            color: var(--primary-color);
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: var(--text-light);
+            padding: 6rem 2rem;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            letter-spacing: -1px;
+        }
+
+        .hero p {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            background-color: var(--text-light);
+            color: var(--primary-color);
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--text-light);
+            padding: 1rem 2rem;
+            border: 2px solid var(--text-light);
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.1rem;
+            transition: background-color 0.2s, transform 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255,255,255,0.1);
+            transform: translateY(-3px);
+        }
+
+        /* Features Section */
+        .features {
+            max-width: 1200px;
+            margin: 4rem auto;
+            padding: 0 2rem;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .section-header h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .section-header p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--text-dark);
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        /* Languages Section */
+        .languages {
+            background: white;
+            padding: 4rem 2rem;
+        }
+
+        .language-tags {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .language-tag {
+            background: var(--gradient-1);
+            color: var(--text-light);
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        /* Pricing Section */
+        .pricing {
+            max-width: 1200px;
+            margin: 4rem auto;
+            padding: 0 2rem;
+        }
+
+        .pricing-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .pricing-card {
+            background: white;
+            padding: 3rem 2rem;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+        }
+
+        .pricing-card.featured {
+            border: 3px solid var(--primary-color);
+            position: relative;
+        }
+
+        .pricing-badge {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent-orange);
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .pricing-card h3 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .pricing-card .price {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .pricing-card .price-note {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+
+        .pricing-card ul {
+            list-style: none;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+
+        .pricing-card li {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--light-bg);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .pricing-card li:before {
+            content: "✓";
+            color: var(--accent-green);
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .pricing-button {
+            background: var(--primary-color);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 700;
+            display: inline-block;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        .pricing-button:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        /* Screenshots Section */
+        .screenshots {
+            background: var(--dark-bg);
+            color: var(--text-light);
+            padding: 4rem 2rem;
+        }
+
+        .screenshot-container {
+            max-width: 1200px;
+            margin: 3rem auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+        }
+
+        .screenshot-placeholder {
+            background: linear-gradient(135deg, #434343 0%, #000000 100%);
+            border-radius: 12px;
+            aspect-ratio: 16/10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            font-weight: 600;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+        }
+
+        /* FAQ Section */
+        .faq {
+            max-width: 800px;
+            margin: 4rem auto;
+            padding: 0 2rem;
+        }
+
+        .faq-item {
+            background: white;
+            padding: 2rem;
+            margin-bottom: 1rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .faq-item h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.75rem;
+            color: var(--primary-color);
+        }
+
+        .faq-item p {
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--dark-bg);
+            color: var(--text-light);
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        footer p {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero p {
+                font-size: 1.2rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .screenshot-container {
+                grid-template-columns: 1fr;
+            }
+
+            .pricing-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Code Preview Styles */
+        .code-preview {
+            background: #1E1E1E;
+            color: #D4D4D4;
+            padding: 2rem;
+            border-radius: 12px;
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            overflow-x: auto;
+            margin: 2rem 0;
+        }
+
+        .code-preview .keyword { color: #569CD6; }
+        .code-preview .string { color: #CE9178; }
+        .code-preview .function { color: #DCDCAA; }
+        .code-preview .comment { color: #6A9955; }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <nav>
+            <div class="logo">⚡ Clarity Code</div>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#languages">Languages</a></li>
+                <li><a href="#pricing">Pricing</a></li>
+                <li><a href="#faq">FAQ</a></li>
+            </ul>
+            <a href="#download" class="cta-button">Download Free</a>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <h1>Code with Clarity.<br>Edit with Confidence.</h1>
+        <p>Professional code editor for macOS with support for 20+ languages. Native performance, intelligent syntax highlighting, and one-time purchase.</p>
+        <div class="hero-buttons">
+            <a href="#download" class="btn-primary">
+                <span>⬇</span> Download for macOS
+            </a>
+            <a href="#features" class="btn-secondary">Learn More</a>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="section-header">
+            <h2>Built for Modern Developers</h2>
+            <p>Everything you need to write, edit, and review code efficiently</p>
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h3>Intelligent Detection</h3>
+                <p>Paste code and watch it automatically detect the language. Advanced content analysis recognizes patterns from Swift to Salesforce Apex.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>Native Performance</h3>
+                <p>Built with Swift and native macOS frameworks. No Electron, no web wrappers—just pure native code that respects your Mac's resources.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🎨</div>
+                <h3>Beautiful Syntax Highlighting</h3>
+                <p>Carefully crafted color schemes for over 20 languages. Keywords, strings, comments, and functions all beautifully highlighted.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">💡</div>
+                <h3>Smart Code Completion</h3>
+                <p>Context-aware suggestions for keywords, functions, and common patterns. Boost your productivity with intelligent autocomplete.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🔍</div>
+                <h3>Powerful Find & Replace</h3>
+                <p>Search with case-sensitive matching, whole word matching, and regular expressions. Find what you need instantly.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🖨️</div>
+                <h3>Print with Formatting</h3>
+                <p>Print your code with preserved syntax highlighting. Perfect for code reviews, documentation, and presentations.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">☁️</div>
+                <h3>Salesforce Ready</h3>
+                <p>First-class Apex support for Salesforce developers. .cls and .trigger files with SOQL highlighting and Apex-specific completion.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <h3>Privacy First</h3>
+                <p>Your code never leaves your Mac. No cloud sync, no data collection, no analytics. What you write is yours alone.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">⌨️</div>
+                <h3>Keyboard Shortcuts</h3>
+                <p>Full macOS keyboard shortcut support. Cmd+N, Cmd+O, Cmd+S, Cmd+P, and more. Work at the speed of thought.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Languages Section -->
+    <section class="languages" id="languages">
+        <div class="section-header">
+            <h2>20+ Languages Supported</h2>
+            <p>Write code in your favorite language with beautiful syntax highlighting</p>
+        </div>
+        <div class="language-tags">
+            <span class="language-tag">Swift</span>
+            <span class="language-tag">Python</span>
+            <span class="language-tag">JavaScript</span>
+            <span class="language-tag">TypeScript</span>
+            <span class="language-tag">Java</span>
+            <span class="language-tag">C#</span>
+            <span class="language-tag">C</span>
+            <span class="language-tag">C++</span>
+            <span class="language-tag">Go</span>
+            <span class="language-tag">Rust</span>
+            <span class="language-tag">Ruby</span>
+            <span class="language-tag">PHP</span>
+            <span class="language-tag">SQL</span>
+            <span class="language-tag">HTML</span>
+            <span class="language-tag">CSS</span>
+            <span class="language-tag">Markdown</span>
+            <span class="language-tag">JSON</span>
+            <span class="language-tag">XML</span>
+            <span class="language-tag">YAML</span>
+            <span class="language-tag">CSV</span>
+            <span class="language-tag">Salesforce Apex</span>
+        </div>
+
+        <div class="code-preview" style="max-width: 800px; margin: 3rem auto;">
+<span class="comment">// Example: Swift code with syntax highlighting</span>
+<span class="keyword">import</span> Foundation
+
+<span class="keyword">struct</span> <span class="function">User</span> {
+    <span class="keyword">let</span> name: String
+    <span class="keyword">let</span> email: String
+    
+    <span class="keyword">func</span> <span class="function">greet</span>() -> String {
+        <span class="keyword">return</span> <span class="string">"Hello, \(name)!"</span>
+    }
+}
+
+<span class="keyword">let</span> user = User(name: <span class="string">"Developer"</span>, email: <span class="string">"dev@example.com"</span>)
+print(user.greet())
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="pricing" id="pricing">
+        <div class="section-header">
+            <h2>Simple, Honest Pricing</h2>
+            <p>Start free. Upgrade once to unlock everything.</p>
+        </div>
+
+        <div class="pricing-cards">
+            <div class="pricing-card">
+                <h3>Free</h3>
+                <div class="price">$0</div>
+                <div class="price-note">Forever free</div>
+                <ul>
+                    <li>Markdown editing</li>
+                    <li>JSON & XML support</li>
+                    <li>CSV file editing</li>
+                    <li>Plain text editing</li>
+                    <li>Unlimited files</li>
+                    <li>Save & print documents</li>
+                    <li>All keyboard shortcuts</li>
+                </ul>
+                <a href="#download" class="pricing-button">Download Free</a>
+            </div>
+
+            <div class="pricing-card featured">
+                <div class="pricing-badge">Most Popular</div>
+                <h3>Premium</h3>
+                <div class="price">$14.99</div>
+                <div class="price-note">One-time purchase</div>
+                <ul>
+                    <li>Everything in Free, plus:</li>
+                    <li>20+ programming languages</li>
+                    <li>Intelligent code completion</li>
+                    <li>Find & replace with regex</li>
+                    <li>Advanced syntax highlighting</li>
+                    <li>Salesforce Apex support</li>
+                    <li>Print with formatting</li>
+                    <li>Auto language detection</li>
+                    <li>Priority support</li>
+                    <li>Free updates forever</li>
+                </ul>
+                <a href="#download" class="pricing-button">Get Premium</a>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 3rem; color: var(--text-secondary);">
+            <p>✓ No subscription &nbsp;&nbsp;✓ Family Sharing supported &nbsp;&nbsp;✓ Works on all your Macs</p>
+        </div>
+    </section>
+
+    <!-- Screenshots Section -->
+    <section class="screenshots">
+        <div class="section-header">
+            <h2>See It In Action</h2>
+            <p>Clean interface, powerful features</p>
+        </div>
+        <div class="screenshot-container">
+            <div class="screenshot-placeholder">
+                Editor View Screenshot
+            </div>
+            <div class="screenshot-placeholder">
+                Multi-File View Screenshot
+            </div>
+            <div class="screenshot-placeholder">
+                Syntax Highlighting Demo
+            </div>
+            <div class="screenshot-placeholder">
+                Code Completion Demo
+            </div>
+        </div>
+        <p style="text-align: center; color: var(--text-secondary); margin-top: 2rem;">
+            Replace these placeholders with actual screenshots from your app
+        </p>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="faq" id="faq">
+        <div class="section-header">
+            <h2>Frequently Asked Questions</h2>
+        </div>
+
+        <div class="faq-item">
+            <h3>Is this a subscription or one-time purchase?</h3>
+            <p>Clarity Code Premium is a one-time purchase. Pay once and own it forever across all your Macs. No recurring fees, no subscription.</p>
+        </div>
+
+        <div class="faq-item">
+            <h3>What can I do with the free version?</h3>
+            <p>The free version includes full support for Markdown, JSON, XML, CSV, and plain text editing. You can save, open, and print documents without any limitations.</p>
+        </div>
+
+        <div class="faq-item">
+            <h3>Which programming languages are supported?</h3>
+            <p>Premium unlocks syntax highlighting and code completion for Swift, Python, JavaScript, TypeScript, Java, C#, C, C++, Go, Rust, Ruby, PHP, SQL, HTML, CSS, Salesforce Apex, and more.</p>
+        </div>
+
+        <div class="faq-item">
+            <h3>Does it work offline?</h3>
+            <p>Yes! Clarity Code works completely offline. Your code never leaves your Mac, and there's no internet connection required.</p>
+        </div>
+
+        <div class="faq-item">
+            <h3>What macOS version do I need?</h3>
+            <p>Clarity Code requires macOS 13.0 (Ventura) or later. It's optimized for both Intel and Apple Silicon Macs.</p>
+        </div>
+
+        <div class="faq-item">
+            <h3>Can I use this for Salesforce development?</h3>
+            <p>Absolutely! Clarity Code has first-class support for Salesforce Apex, including .cls and .trigger files, SOQL syntax highlighting, and Apex-specific code completion.</p>
+        </div>
+
+        <div class="faq-item">
+            <h3>Is there a trial period for Premium features?</h3>
+            <p>You can use the free version to get a feel for the app. Premium features can be unlocked with an in-app purchase at any time.</p>
+        </div>
+
+        <div class="faq-item">
+            <h3>Do you collect my code or data?</h3>
+            <p>Never. Clarity Code has zero telemetry, zero analytics, and zero data collection. Your code stays on your Mac, period.</p>
+        </div>
+    </section>
+
+    <!-- Download CTA Section -->
+    <section class="hero" id="download" style="padding: 4rem 2rem;">
+        <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">Ready to Start Coding?</h2>
+        <p style="font-size: 1.2rem; margin-bottom: 2rem;">Download Clarity Code for free and see the difference</p>
+        <div class="hero-buttons">
+            <a href="https://apps.apple.com/app/YOUR-APP-ID" class="btn-primary" style="font-size: 1.2rem; padding: 1.25rem 2.5rem;">
+                <span>⬇</span> Download on the Mac App Store
+            </a>
+        </div>
+        <p style="margin-top: 1.5rem; font-size: 0.95rem; opacity: 0.8;">
+            macOS 13.0 or later • Free download • Premium upgrade available
+        </p>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2026 Clarity Code. All rights reserved.</p>
+        <p>
+            <a href="/WebServerfeedback.html">Support</a> • 
+            <a href="/privacy.html">Privacy Policy</a> •
+            <a href="/terms.html">Terms of Service</a>
+        </p>
+    </footer>
+</body>
+</html>
