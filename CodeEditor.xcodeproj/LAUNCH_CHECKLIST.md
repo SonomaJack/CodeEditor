@@ -94,7 +94,7 @@ Marketing URL: https://codeedit.sonomaenterprises.com/index.html (optional)
 - [ ] **Display Name**: Clarity Code Premium
 - [ ] **Description**: 
   ```
-  Unlock all 20+ programming languages, intelligent code completion, find & replace with regex, advanced syntax highlighting, Salesforce Apex support, and professional developer tools. One-time purchase, yours forever.
+  Unlock all 20+ programming languages, intelligent code completion, advanced syntax highlighting, Salesforce Apex support, and professional developer tools. One-time purchase, yours forever.
   ```
 
 ### Review Information
@@ -140,7 +140,9 @@ FREE TIER - GET STARTED TODAY
 - Plain text editing
 - Unlimited files and projects
 - Save, open, and print documents
-- Full keyboard shortcuts (Cmd+N, Cmd+O, Cmd+S, Cmd+P)
+- Find and replace with regex support
+- Full keyboard shortcuts (Cmd+N, Cmd+O, Cmd+S, Cmd+P, Cmd+F)
+- Print with preserved formatting
 
 PREMIUM - UNLOCK FOR JUST $14.99
 Upgrade once to unlock everything. No subscription, no recurring fees.
@@ -155,9 +157,7 @@ Upgrade once to unlock everything. No subscription, no recurring fees.
 
 Developer Tools:
 - Intelligent code completion
-- Find and replace with regex support
-- Professional syntax highlighting
-- Print with preserved formatting
+- Advanced syntax highlighting for 20+ languages
 - Monospaced font with line numbers
 - Real-time language detection
 
@@ -187,8 +187,6 @@ Auto Language Detection: Paste any code snippet and watch Clarity Code analyze t
 
 Code Completion: Context-aware suggestions for keywords, functions, and common patterns in all supported languages. Boost your productivity with intelligent autocomplete.
 
-Find and Replace: Powerful search with support for case-sensitive matching, whole word matching, and regular expressions.
-
 Salesforce Apex Support: First-class support for Salesforce developers with .cls and .trigger file recognition, SOQL highlighting, and Apex-specific code completion.
 
 FILE MANAGEMENT
@@ -204,7 +202,7 @@ Cmd+N - New File
 Cmd+O - Open File
 Cmd+S - Save File
 Cmd+P - Print
-Cmd+F - Find (Premium)
+Cmd+F - Find & Replace
 Cmd+Z - Undo/Redo
 
 PERFORMANCE AND RELIABILITY
@@ -440,6 +438,7 @@ Verify these entitlements exist in your `.entitlements` file:
   FREE FEATURES (no purchase needed):
   - Users can edit Markdown, JSON, XML, CSV, and plain text files
   - Full file operations (open, save, print)
+  - Find and replace with regex support
   - Unlimited files
   - No time limit or restrictions
 
@@ -447,7 +446,6 @@ Verify these entitlements exist in your `.entitlements` file:
   A one-time in-app purchase ($14.99) unlocks:
   - Syntax highlighting for 20+ programming languages
   - Code completion
-  - Find and replace
   - Advanced language auto-detection
   - Salesforce Apex support
 
@@ -611,6 +609,9 @@ Follow this checklist step-by-step and you'll have a successful launch.
 - Step 10 (Launch): 🚀
 
 **Questions?** Review the documentation:
+- `APP_REVIEW_REJECTION_FIX.md` - **🚨 FIX APP REJECTION (IAP + Entitlements)**
+- `REJECTION_FIX_QUICK.md` - Quick rejection fix checklist
+- `EXPORT_COMPLIANCE_GUIDE.md` - How to resolve "Missing Compliance"
 - `PRICING_ANALYSIS.md` - Pricing research and strategy
 - `FINAL_PRICING_SUMMARY.md` - Pricing quick reference
 - `APP_STORE_READY.md` - Technical configuration

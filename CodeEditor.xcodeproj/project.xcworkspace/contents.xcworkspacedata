@@ -5,63 +5,63 @@
       location = "self:">
    </FileRef>
    <FileRef
-      location = "group:PREMIUM_FEATURES_UPDATE.md">
+      location = "group:EXPORT_COMPLIANCE_GUIDE.md">
    </FileRef>
    <FileRef
-      location = "group:PREMIUM_UX_IMPROVEMENTS.md">
+      location = "group:MISSING_COMPLIANCE_FIX.md">
    </FileRef>
    <FileRef
-      location = "group:FIX_PREMIUM_BYPASS_RELAUNCH.md">
+      location = "group:APP_REVIEW_REJECTION_FIX.md">
    </FileRef>
    <FileRef
-      location = "group:TESTFLIGHT_IAP_SETUP.md">
+      location = "group:REJECTION_FIX_QUICK.md">
    </FileRef>
    <FileRef
-      location = "group:TESTFLIGHT_DIAGNOSIS.md">
+      location = "group:CodeEditor.entitlements.CORRECT">
    </FileRef>
    <FileRef
-      location = "group:FIX_PREMIUM_OVERRIDE.md">
+      location = "group:IAP_SCREENSHOT_GUIDE.md">
    </FileRef>
    <FileRef
-      location = "group:LanguageDetector.swift">
+      location = "group:REJECTION_ACTION_PLAN.md">
    </FileRef>
    <FileRef
-      location = "group:ULTIMATE_LANGUAGE_DETECTION.md">
+      location = "group:PREMIUM_FEATURES_VALIDATION.md">
    </FileRef>
    <FileRef
-      location = "group:marketing-page.html">
+      location = "group:PREMIUM_FEATURES_FIXED.md">
    </FileRef>
    <FileRef
-      location = "group:APP_STORE_SUBMISSION_CHECKLIST.md">
+      location = "group:PREMIUM_UI_UPDATE.md">
    </FileRef>
    <FileRef
-      location = "group:APP_STORE_READY.md">
+      location = "group:IAP_TESTING_BEFORE_RELEASE.md">
    </FileRef>
    <FileRef
-      location = "group:PRICING_CONFIGURATION.md">
+      location = "group:TESTFLIGHT_QUICK_START.md">
    </FileRef>
    <FileRef
-      location = "group:PRICING_STRATEGY.md">
+      location = "group:Products.storekit">
    </FileRef>
    <FileRef
-      location = "group:index.html">
+      location = "group:TESTFLIGHT_IAP_TROUBLESHOOTING.md">
    </FileRef>
    <FileRef
-      location = "group:PRICING_ANALYSIS.md">
+      location = "group:IAP_DIAGNOSTIC_QUICK.md">
    </FileRef>
    <FileRef
-      location = "group:FINAL_PRICING_SUMMARY.md">
+      location = "group:BUTTON_NOT_RESPONDING.md">
    </FileRef>
    <FileRef
-      location = "group:privacy.html">
+      location = "group:RUN_FROM_XCODE.md">
    </FileRef>
    <FileRef
-      location = "group:terms.html">
+      location = "group:FIX_PRODUCT_ID_MISMATCH.md">
    </FileRef>
    <FileRef
-      location = "group:LAUNCH_CHECKLIST.md">
+      location = "group:SANDBOX_TESTING_GUIDE.md">
    </FileRef>
    <FileRef
-      location = "group:GIT_COMMIT_GUIDE.md">
+      location = "group:COMMIT_MESSAGE_IAP_FIX.md">
    </FileRef>
 </Workspace>

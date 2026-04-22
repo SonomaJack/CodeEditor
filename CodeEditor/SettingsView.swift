@@ -173,30 +173,30 @@ struct SettingsView: View {
                 }
             }
             
-            // Feature list (scrollable)
+            // Feature list (2-column grid)
             Text("Premium Features:")
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .padding(.top, 8)
             
-            ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
-                    FeatureCheckmark(text: "All 21 programming languages")
-                    FeatureCheckmark(text: "Find and Replace")
-                    FeatureCheckmark(text: "Column-restricted search")
-                    FeatureCheckmark(text: "Code completion")
-                    FeatureCheckmark(text: "Print with headers & footers")
-                    FeatureCheckmark(text: "Premium color themes")
-                    FeatureCheckmark(text: "Split view editing")
-                    FeatureCheckmark(text: "Code snippets & templates")
-                    FeatureCheckmark(text: "Multi-file search")
-                    FeatureCheckmark(text: "Git integration")
-                    FeatureCheckmark(text: "Multiple file tabs")
-                    FeatureCheckmark(text: "Advanced customization")
-                }
-                .padding(.vertical, 8)
+            let columns = [
+                GridItem(.flexible(), spacing: 12),
+                GridItem(.flexible(), spacing: 12)
+            ]
+            
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
+                FeatureCheckmark(text: "21 languages")
+                FeatureCheckmark(text: "Code completion")
+                FeatureCheckmark(text: "Column search")
+                FeatureCheckmark(text: "Split view")
+                FeatureCheckmark(text: "Code snippets")
+                FeatureCheckmark(text: "Git integration")
+                FeatureCheckmark(text: "Premium themes")
+                FeatureCheckmark(text: "Multi-file search")
+                FeatureCheckmark(text: "Code folding")
+                FeatureCheckmark(text: "Folder support")
             }
-            .frame(height: 200)
+            .padding()
             .background(Color.secondary.opacity(0.05))
             .cornerRadius(8)
             

@@ -40,19 +40,23 @@ struct PremiumFeatureView: View {
                 Divider()
                     .padding(.vertical)
                 
-                VStack(alignment: .leading, spacing: 12) {
-                    PremiumFeatureRow(icon: "paintpalette", text: "All 21 programming languages")
-                    PremiumFeatureRow(icon: "arrow.triangle.2.circlepath", text: "Find and Replace")
-                    PremiumFeatureRow(icon: "tablecells", text: "Column-restricted search")
-                    PremiumFeatureRow(icon: "printer", text: "Print with headers & footers")
-                    PremiumFeatureRow(icon: "lightbulb", text: "Code completion suggestions")
-                    PremiumFeatureRow(icon: "doc.on.doc", text: "Multiple file tabs")
-                    PremiumFeatureRow(icon: "rectangle.split.3x1", text: "Split view editing")
-                    PremiumFeatureRow(icon: "curlybraces", text: "Code snippets & templates")
-                    PremiumFeatureRow(icon: "arrow.triangle.branch", text: "Git integration")
-                    PremiumFeatureRow(icon: "paintbrush.pointed", text: "Premium color themes")
-                    PremiumFeatureRow(icon: "doc.text.magnifyingglass", text: "Multi-file search")
+                // Two-column grid layout
+                let columns = [
+                    GridItem(.flexible(), spacing: 16),
+                    GridItem(.flexible(), spacing: 16)
+                ]
                 
+                LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
+                    PremiumFeatureRow(icon: "paintpalette", text: "21 programming languages")
+                    PremiumFeatureRow(icon: "lightbulb", text: "Code completion")
+                    PremiumFeatureRow(icon: "tablecells", text: "Column search")
+                    PremiumFeatureRow(icon: "rectangle.split.3x1", text: "Split view editing")
+                    PremiumFeatureRow(icon: "curlybraces", text: "Code snippets")
+                    PremiumFeatureRow(icon: "arrow.triangle.branch", text: "Git integration")
+                    PremiumFeatureRow(icon: "paintbrush.pointed", text: "Premium themes")
+                    PremiumFeatureRow(icon: "doc.text.magnifyingglass", text: "Multi-file search")
+                    PremiumFeatureRow(icon: "chevron.left.forwardslash.chevron.right", text: "Code folding")
+                    PremiumFeatureRow(icon: "folder", text: "Folder support")
                 }
                 .padding()
                 .background(Color.secondary.opacity(0.1))

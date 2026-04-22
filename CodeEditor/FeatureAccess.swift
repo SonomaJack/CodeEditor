@@ -49,12 +49,12 @@ struct FeatureAccess {
     
     /// Check if find and replace is available
     static var canUseFindAndReplace: Bool {
-        hasPremium
+        true // Available in free version
     }
     
     /// Check if printing is available
     static var canUsePrinting: Bool {
-        hasPremium
+        true // Available in free version
     }
     
     /// Check if code completion is available
