@@ -1,0 +1,200 @@
+# 🔧 TestFlight IAP Not Working - Troubleshooting Guide
+
+**Problem:** "Unlock Premium" button does nothing in TestFlight  
+**Status:** Diagnosing and fixing
+
+---
+
+## 🔍 Step 1: Check Console Logs
+
+The app has extensive logging built in. Let's see what's happening:
+
+### How to View Logs:
+
+**While running TestFlight app:**
+
+1. **Open Console.app** on your Mac
+   - Spotlight (⌘Space) → type "Console" → Enter
+   - Or: Applications → Utilities → Console
+
+2. **Filter for your app:**
+   - In the search box (top right), enter: `Clarity` or `CodeEditor`
+   - Or filter by process name
+
+3. **Trigger the premium purchase:**
+   - In Clarity Code Edit, try to open a Swift file
+   - Click "Unlock Premium"
+
+4. **Look for these log messages:**
+   ```
+   🏪 StoreManager initializing...
+   📦 Loading products from App Store...
+   📦 Requesting products: ["com.claritycodedit.premium"]
+   ✅ Product loaded: com.claritycodedit.premium - ... - $14.99
+   💎 PremiumFeatureView initialized with feature: ...
+   💎 PURCHASE BUTTON TAPPED!
+   🛒 Purchase button clicked
+   ```
+
+---
+
+## 🚨 Common Issues & Solutions
+
+### Issue #1: Products Not Loading
+
+**Symptoms:**
+- Button shows "$14.99" (fallback) instead of real price
+- Console shows: `⚠️ No products returned from App Store`
+- Or shows: `💎 Showing FALLBACK button`
+
+**Causes:**
+1. IAP not approved/ready in App Store Connect
+2. Product ID mismatch
+3. Network connectivity issue
+4. Build not configured for IAP
+
+**Solutions:**
+
+#### A. Verify IAP is Approved
+1. **App Store Connect** → Your app → **Features** → **In-App Purchases**
+2. Find: `com.claritycodedit.premium`
+3. Status should be: **"Ready to Submit"** or **"Approved"**
+4. If status is **"Missing Metadata"**:
+   - Add screenshot
+   - Click "Submit for Review"
+
+#### B. Verify Product ID Matches
+1. In App Store Connect, copy the **exact** Product ID
+2. Should be: `com.claritycodedit.premium`
+3. Compare with `StoreManager.swift` line 14:
+   ```swift
+   case premiumFeatures = "com.claritycodedit.premium"
+   ```
+4. They must match EXACTLY (case-sensitive)
+
+#### C. Check Network
+1. Make sure Mac is connected to internet
+2. Try opening App Store to verify connectivity
+3. Restart TestFlight app
+
+#### D. Wait for IAP Processing
+- If you just submitted IAP for review, wait 2-24 hours
+- IAP needs to be processed before TestFlight can access it
+
+---
+
+### Issue #2: Button Does Nothing (No Purchase Dialog)
+
+**Symptoms:**
+- Button is clickable but nothing happens
+- No StoreKit purchase sheet appears
+- Console shows button tapped but no purchase flow
+
+**Causes:**
+1. Products loaded but purchase not triggering
+2. StoreKit configuration issue
+3. Entitlements missing
+
+**Solutions:**
+
+#### A. Check Entitlements
+In Xcode, verify your `.entitlements` file has:
+
+```xml
+<!-- In-App Purchase capability -->
+<key>com.apple.security.network.client</key>
+<true/>
+```
+
+This is required for StoreKit to communicate with App Store.
+
+#### B. Verify Build Configuration
+1. In Xcode, select your target
+2. **Signing & Capabilities** tab
+3. Verify **"In-App Purchase"** capability is present
+4. If not, click **"+ Capability"** → Add **"In-App Purchase"**
+
+#### C. Check Console for Errors
+Look for:
+```
+❌ Purchase error: ...
+❌ Failed to load products: ...
+```
+
+#### D. Restart TestFlight
+1. Quit Clarity Code Edit completely
+2. Quit TestFlight app
+3. Reopen TestFlight
+4. Reinstall app
+5. Try again
+
+---
+
+### Issue #3: Purchase Sheet Appears Then Disappears
+
+**Symptoms:**
+- StoreKit sheet flashes briefly
+- Returns to app immediately
+- No purchase completes
+
+**Causes:**
+1. Not signed in to App Store
+2. Payment method issue
+3. StoreKit bug
+
+**Solutions:**
+
+#### A. Verify Apple ID Sign-In
+1. **System Settings** → **App Store**
+2. Make sure you're signed in with your Apple ID
+3. If not, sign in
+
+#### B. Check Payment Method
+1. Make sure your Apple ID has valid payment method
+2. Go to appleid.apple.com
+3. Verify payment information is current
+
+#### C. Try Production (Xcode Build)
+Sometimes TestFlight has quirks. Try:
+1. Archive your app in Xcode
+2. Export for "Development"
+3. Install and run locally
+4. Test IAP (will use production StoreKit)
+
+---
+
+### Issue #4: Products Array is Empty
+
+**Symptoms:**
+- Console shows: `📦 Loading complete. Found 0 product(s)`
+- Button shows fallback "$14.99"
+
+**This is the most common issue!**
+
+**Solutions:**
+
+#### A. Check IAP Cleared for Sale
+1. **App Store Connect** → **Features** → **In-App Purchases**
+2. Click your IAP: `com.claritycodedit.premium`
+3. Scroll to **"Availability"**
+4. Must be **"Available in all territories"**
+5. Status must be **"Ready to Submit"** or **"Approved"**
+
+#### B. Check Agreements
+1. **App Store Connect** → **Agreements, Tax, and Banking**
+2. Make sure **"Paid Applications"** agreement is signed
+3. Must have banking info set up
+4. Tax forms must be completed
+
+#### C. Check Product Cleared Status
+Sometimes products aren't immediately available:
+1. Wait 2-4 hours after IAP approval
+2. Apple's servers need to propagate
+3. Try again later
+
+#### D. Verify in StoreKit Configuration File
+Check if `Products.storekit` file exists:
+
+<function_calls>
+<invoke name="str_replace_based_edit_tool">
+<parameter name="command">view

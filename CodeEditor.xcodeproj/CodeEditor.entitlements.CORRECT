@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- App Sandbox - Required for Mac App Store -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	
+	<!-- User Selected File Access - Needed for Open/Save dialogs -->
+	<!-- This grants access to files the user explicitly chooses -->
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
+	
+	<!-- Printing - Needed for Cmd+P print functionality -->
+	<key>com.apple.security.print</key>
+	<true/>
+	
+	<!-- Network Client - Needed for StoreKit In-App Purchases -->
+	<!-- StoreKit requires network access to communicate with App Store -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+</dict>
+</plist>
