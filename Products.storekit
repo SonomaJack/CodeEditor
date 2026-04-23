@@ -25,7 +25,7 @@
           "locale" : "en_US"
         }
       ],
-      "productID" : "com.ClarityCodeEdit.premium",
+      "productID" : "com.yourcompany.claritycode.premium",
       "referenceName" : "Premium Features for Clarity Code Edit",
       "type" : "NonConsumable"
     }

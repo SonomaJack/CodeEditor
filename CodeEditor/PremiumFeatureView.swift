@@ -105,38 +105,40 @@ struct PremiumFeatureView: View {
                         }
                     } else {
                         // Fallback button if products didn't load
-                        Button(action: {
-                            print("💎 FALLBACK BUTTON TAPPED!")
-                            Task {
-                                print("💎 Trying to reload products...")
-                                // Try to reload products
-                                await store.loadProducts()
-                                
-                                // If still no products, try to purchase anyway
-                                if let product = store.products.first(where: { $0.id == ProductID.premiumFeatures.rawValue }) {
-                                    print("💎 Products loaded, attempting purchase...")
-                                    _ = try? await store.purchase(product)
-                                    dismiss()
-                                } else {
-                                    print("❌ Still no products after reload!")
-                                    store.errorMessage = "Unable to load purchase options. Please check your internet connection."
+                        VStack(spacing: 8) {
+                            Text("⚠️ Unable to load pricing from App Store")
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                            
+                            Button(action: {
+                                print("💎 FALLBACK BUTTON TAPPED!")
+                                Task {
+                                    print("💎 Trying to reload products...")
+                                    // Try to reload products
+                                    await store.loadProducts()
+                                    
+                                    // If still no products, show error
+                                    if store.products.isEmpty {
+                                        print("❌ Still no products after reload!")
+                                        store.errorMessage = "Unable to connect to App Store. Please check:\n• Internet connection\n• StoreKit Configuration is set in scheme\n• Product ID matches App Store Connect"
+                                    }
                                 }
+                            }) {
+                                HStack {
+                                    Image(systemName: "arrow.clockwise")
+                                    Text("Retry Loading Products")
+                                }
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(Color.accentColor)
+                                .foregroundStyle(.white)
+                                .cornerRadius(10)
                             }
-                        }) {
-                            HStack {
-                                Text("Unlock Premium")
-                                Spacer()
-                                Text("$14.99")
-                            }
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Color.accentColor)
-                            .foregroundStyle(.white)
-                            .cornerRadius(10)
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                         .onAppear { 
-                            print("💎 Showing FALLBACK button (products didn't load) - displaying fallback price")
+                            print("💎 Showing FALLBACK - products didn't load")
+                            print("💎 Product ID looking for: \(ProductID.premiumFeatures.rawValue)")
                         }
                     }
                     

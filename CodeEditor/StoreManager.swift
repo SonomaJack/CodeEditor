@@ -11,7 +11,7 @@ import Combine
 
 /// Product identifiers for in-app purchases
 enum ProductID: String, CaseIterable {
-    case premiumFeatures = "com.yourcompany.claritycode.premium"  // Using existing App Store Connect ID
+    case premiumFeatures = "com.yourcompany.claritycode.premium"  // ⚠️ IMPORTANT: Must match App Store Connect exactly!
     
     var displayName: String {
         switch self {
