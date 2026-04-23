@@ -11,7 +11,9 @@ import Combine
 
 /// Product identifiers for in-app purchases
 enum ProductID: String, CaseIterable {
-    case premiumFeatures = "com.yourcompany.claritycode.premium"  // ⚠️ IMPORTANT: Must match App Store Connect exactly!
+    // ⚠️ CRITICAL: This MUST match your App Store Connect product ID EXACTLY
+    // Check: App Store Connect → Your App → In-App Purchases → Product ID
+    case premiumFeatures = "com.yourcompany.claritycode.premium"  // TODO: Verify this matches App Store Connect!
     
     var displayName: String {
         switch self {
@@ -59,6 +61,7 @@ class StoreManager: ObservableObject {
     /// Load products from the App Store
     func loadProducts() async {
         print("📦 Loading products from App Store...")
+        print("📦 Environment: \(isRunningInTestFlight() ? "TestFlight" : isRunningInXcode() ? "Xcode" : "Production")")
         isLoading = true
         defer { 
             isLoading = false
@@ -71,7 +74,14 @@ class StoreManager: ObservableObject {
             products = try await Product.products(for: productIds)
             
             if products.isEmpty {
-                print("⚠️ No products returned from App Store")
+                print("⚠️ ⚠️ ⚠️ NO PRODUCTS RETURNED FROM APP STORE ⚠️ ⚠️ ⚠️")
+                print("⚠️ Possible causes:")
+                print("⚠️ 1. Product ID mismatch between code and App Store Connect")
+                print("⚠️ 2. Product not in 'Ready to Submit' status in App Store Connect")
+                print("⚠️ 3. Paid Applications Agreement not signed")
+                print("⚠️ 4. Not signed in with Sandbox account (TestFlight)")
+                print("⚠️ 5. Product not created in App Store Connect yet")
+                print("⚠️ Product IDs requested: \(productIds)")
             } else {
                 for product in products {
                     print("✅ Product loaded: \(product.id) - \(product.displayName) - \(product.displayPrice)")
@@ -80,7 +90,25 @@ class StoreManager: ObservableObject {
         } catch {
             errorMessage = "Failed to load products: \(error.localizedDescription)"
             print("❌ Failed to load products: \(error)")
+            print("❌ Error details: \(error)")
         }
+    }
+    
+    /// Check if running in TestFlight
+    private func isRunningInTestFlight() -> Bool {
+        guard let path = Bundle.main.appStoreReceiptURL?.path else {
+            return false
+        }
+        return path.contains("sandboxReceipt")
+    }
+    
+    /// Check if running in Xcode
+    private func isRunningInXcode() -> Bool {
+        #if DEBUG
+        return true
+        #else
+        return false
+        #endif
     }
     
     /// Purchase a product

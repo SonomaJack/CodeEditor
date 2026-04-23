@@ -36,7 +36,7 @@ This branch contains the App Store version with In-App Purchase (IAP) support.
 
 2. Add the IAP product:
    - Click **+** → Add Non-Consumable In-App Purchase
-   - Product ID: `com.codeeditor.premium`
+   - Product ID: `com.yourcompany.claritycode.premium`
    - Reference Name: `Premium Features`
    - Price: $4.99 (or equivalent in your region)
 
